@@ -1,0 +1,275 @@
+@font-face {
+  font-family: Cairo;
+  src: url('./assets/fonts/cairo/Cairo-ExtraLight.ttf') format('truetype');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: Cairo;
+  src: url('./assets/fonts/cairo/Cairo-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: Cairo;
+  src: url('./assets/fonts/cairo/Cairo-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: Cairo;
+  src: url('./assets/fonts/cairo/Cairo-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: Cairo;
+  src: url('./assets/fonts/cairo/Cairo-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: Cairo;
+  src: url('./assets/fonts/cairo/Cairo-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: Cairo;
+  src: url('./assets/fonts/cairo/Cairo-ExtraBold.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: Cairo;
+  src: url('./assets/fonts/cairo/Cairo-Black.ttf') format('truetype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  font-family: Cairo, system-ui, 'Segoe UI', sans-serif;
+  line-height: 1.4;
+  color: #e8eaed;
+  --color-background: #0f1114;
+  --color-panel-bg: #15171c;
+  --color-panel-alt: #1e2228;
+  --color-border: #2a3038;
+  --color-muted: #9aa3ad;
+  --color-heading: #cbd5e1;
+  --color-dim: #6b7280;
+  --color-accent: #f59e0b;
+  --color-success: #22c55e;
+  --color-button-bg: #252a33;
+  --color-button-border: #3d4654;
+  --color-scroll-track: #1c2129;
+  --color-scroll-thumb: #8c97a3;
+  --color-scroll-thumb-hover: #b0bac4;
+  --font-mono: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', monospace;
+  --panel-padding: 20px;
+  --panel-gap: 18px;
+  --panel-radius: 14px;
+}
+
+* {
+  box-sizing: border-box;
+  text-align: right;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+.screen {
+  font-family: Cairo, system-ui, 'Segoe UI', sans-serif;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  overflow: hidden;
+  background-color: var(--color-background);
+}
+
+.control-panel {
+  flex: 1;
+  min-width: 320px;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-panel-bg);
+}
+
+.scene {
+  flex: 3;
+  position: relative;
+}
+
+button {
+  font-family: Cairo, system-ui;
+  cursor: pointer;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--color-button-border);
+  background: var(--color-button-bg);
+  color: #e8eaed;
+  font-size: 13px;
+}
+
+button:hover {
+  background: #303846;
+}
+
+.simulation-panel {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding: var(--panel-padding);
+  background: var(--color-panel-bg);
+  color: #e8eaed;
+  scrollbar-color: var(--color-scroll-thumb) var(--color-scroll-track);
+}
+
+.simulation-panel::-webkit-scrollbar {
+  width: 10px;
+}
+
+.simulation-panel::-webkit-scrollbar-track {
+  background: var(--color-scroll-track);
+}
+
+.simulation-panel::-webkit-scrollbar-thumb {
+  background: var(--color-scroll-thumb);
+  border-radius: 999px;
+}
+
+.simulation-panel::-webkit-scrollbar-thumb:hover {
+  background: var(--color-scroll-thumb-hover);
+}
+
+.panel-title {
+  margin-top: 0;
+  margin-bottom: 24px;
+  font-size: 20px;
+  color: var(--color-heading);
+}
+
+.panel-row {
+  margin-bottom: var(--panel-gap);
+  padding-bottom: var(--panel-gap);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.panel-row-header {
+  margin-bottom: 12px;
+}
+
+.panel-row-title {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.panel-row-subtitle {
+  color: var(--color-muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.panel-row-formula {
+  color: var(--color-accent);
+  font-size: 11px;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+}
+
+.panel-row-value {
+  color: var(--color-success);
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.panel-input {
+  width: 100%;
+  accent-color: var(--color-accent);
+}
+
+.panel-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.panel-button {
+  font-family: Cairo, system-ui, sans-serif;
+  cursor: pointer;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--color-button-border);
+  background: var(--color-button-bg);
+  color: #e8eaed;
+  font-size: 13px;
+  transition: background 0.2s ease;
+}
+
+.panel-button:hover {
+  background: #2f3440;
+}
+
+.panel-stats {
+  margin-top: 30px;
+}
+
+.panel-stats-title {
+  font-size: 16px;
+  margin-bottom: 14px;
+  color: var(--color-heading);
+}
+
+.panel-stats-grid {
+  display: grid;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.9;
+}
+
+.panel-stat-item {
+  background: var(--color-panel-alt);
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+}
+
+.appShell {
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  align-items: stretch;
+}
+
+.appStage {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.appHeader {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-heading);
+}
