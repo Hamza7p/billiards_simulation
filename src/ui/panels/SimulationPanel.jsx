@@ -115,21 +115,38 @@ export default function SimulationPanel({
         </button>
       </div>
 
+        {/* metrics states section  */}
       <section className="panel-stats">
-        <h2 className="panel-stats-title">معلومات المحاكاة</h2>
+        <h2 className="panel-stats-title">مقياس المحاكاة</h2>
         <div className="panel-stats-grid">
           <div className="panel-stat-item">
             السرعة: {stats.speed.toFixed(4)} m/s
           </div>
           <div className="panel-stat-item">
-            الموقع X: {stats.x.toFixed(4)}
+            الموقع X: {stats.position.x.toFixed(4)}
           </div>
           <div className="panel-stat-item">
-            الموقع Y: {stats.y.toFixed(4)}
+            الموقع Y: {stats.position.y.toFixed(4)}
           </div>
           <div className="panel-stat-item">
-            الزمن المستغرق: {stats.time.toFixed(2)} s
+            الزخم : { stats.momentum.toFixed(4) } kg.m/s
           </div>
+          <div className="panel-stat-item">
+            الطاقة الحركية : { stats.kineticEnergy.toFixed(4) } J
+          </div>
+          <div className="panel-stat-item">
+            قوة الاحتكاك : {stats.frictionForce.toFixed(4)} N
+          </div>
+          <div className="panel-stat-item">
+            التسارع : {stats.acceleration.toFixed(4)} m/s²
+          </div>
+          <div className="panel-stat-item">
+            الزمن المستغرق: {stats.simulationTime.toFixed(2)} s
+          </div>
+          <div className="panel-stat-item">
+            المسافة المقطوعة : {stats.distanceTraveled.toFixed(4)} m
+          </div>
+
         </div>
       </section>
     </aside>

@@ -4,8 +4,9 @@ import { Ball } from '../physics/bodies/Ball';
 import { SurfaceMaterial } from '../physics/bodies/Surface';
 import { applyImpulse } from '@/physics/systems/impulse';
 import { updateSimulation } from './updateSimulation';
-import { createControls } from './controls';
+import { createControls } from '../physics/metrics/controls';
 import { START_POINT } from '@/config/constants';
+import { calculateMetrics } from '@/physics/metrics/metrics';
 
 export function createSimulation() {
 
@@ -87,6 +88,11 @@ export function createSimulation() {
       0,
       0
     );
+
+    cueBall.distanceTraveled = 0;
+    simulationTime = 0;
+    isRunning = false;
+
   }
 
   return {
@@ -97,5 +103,12 @@ export function createSimulation() {
     shoot,
     reset,
     getSimulationTime: () => simulationTime,
+
+    getMetrics: () =>
+      calculateMetrics({
+        ball: cueBall,
+        surface,
+        simulationTime,
+      }),
   };
 }

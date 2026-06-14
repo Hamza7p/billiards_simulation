@@ -3,8 +3,9 @@ import { useEffect, useRef, useState } from 'react';
 import BilliardsScene from '../render/scene/BilliardsScene';
 import SimulationPanel from '../ui/panels/SimulationPanel';
 import { createSimulation } from '../simulation/createSimulation';
-import { createControls } from '../simulation/controls';
+import { createControls } from '../physics/metrics/controls';
 import { TABLE } from '@/config/constants';
+import { initialMetrics } from '@/physics/metrics/metrics';
 
 export default function App() {
 
@@ -15,6 +16,9 @@ export default function App() {
   // =========================
   // UI Reactive State
   // =========================
+
+  const [controls, setControls] = useState(createControls());
+  const [metrics, setMetrics] = useState(initialMetrics());
 
   const [uiState, setUiState] = useState({
 
@@ -78,6 +82,9 @@ export default function App() {
       // Update UI State
       // =========================
 
+      setControls(sim.controls);
+      setMetrics(sim.getMetrics);
+
       setUiState({
 
         controls: {
@@ -137,6 +144,7 @@ export default function App() {
       patch
     );
 
+    setControls(sim.controls);
     setUiState(prev => ({
 
       ...prev,
@@ -158,8 +166,8 @@ export default function App() {
       <div className='control-panel'>
 
         <SimulationPanel
-          controls={uiState.controls}
-          stats={uiState.stats}
+          controls={controls}
+          stats={metrics}
           onShoot={shoot}
           onReset={reset}
           onChange={updateControls}

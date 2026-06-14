@@ -12,5 +12,6 @@ export const Ball = ( opts = {}) => ({
         velocity: opts.velocity != null ? vec2.clone(opts.velocity) : vec2.create(0, 0),
         angularVelocity: { x: 0, y: 0, z: 0 },
         force: vec2.create(0, 0),
+        distanceTraveled: 0,
     }
 );
