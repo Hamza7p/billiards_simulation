@@ -1,26 +1,19 @@
-import { integrateMotion } from '../physics/systems/motion';
-import { applySlidingFriction } from '../physics/systems/friction';
-import * as vec2 from '@/physics/math/Vector2';
+import { integrateMotion, integrateOrientation } from '../physics/systems/motion';
+import { applyFriction, settleBall } from '../physics/systems/friction';
+import { resolveTableCollisions } from '../physics/systems/collisions';
 
-export function updateSimulation({
-  world,
-  surface,
-  dt,
-}) {
+export function updateSimulation({ world, surface, dt }) {
   for (const ball of world.balls) {
-    applySlidingFriction(
-      ball,
-      surface,
-      dt
-    );
+    applyFriction(ball, surface, dt);
 
-    // calc distance traveled for each ball 
-    const speed = vec2.length(ball.velocity);
+    const speed = Math.hypot(ball.velocity.x, ball.velocity.y);
     ball.distanceTraveled += speed * dt;
 
-    integrateMotion(
-      ball,
-      dt
-    );
+    integrateMotion(ball, dt);
+    integrateOrientation(ball, dt);
+
+    resolveTableCollisions(ball);
+
+    settleBall(ball);
   }
 }

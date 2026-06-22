@@ -1,15 +1,15 @@
-import * as vec2 from '../physics/math/Vector2';
+import * as vec3 from '../physics/math/Vector3';
 import { Engine } from '../physics/core/Engine';
 import { Ball } from '../physics/bodies/Ball';
 import { SurfaceMaterial } from '../physics/bodies/Surface';
-import { applyImpulse } from '@/physics/systems/impulse';
+import { applyImpulseAtContact } from '@/physics/systems/impulse';
+import { computeStrike } from '@/physics/systems/strike';
 import { updateSimulation } from './updateSimulation';
 import { createControls } from '../physics/metrics/controls';
-import { START_POINT } from '@/config/constants';
+import { START_POINT, PHYSICS } from '@/config/constants';
 import { calculateMetrics } from '@/physics/metrics/metrics';
 
 export function createSimulation() {
-
   const controls = createControls();
   let simulationTime = 0;
   let isRunning = false;
@@ -19,7 +19,6 @@ export function createSimulation() {
     mass: controls.ballMass,
   });
 
-  // world contains all the physical bodies in the simulation
   const world = {
     balls: [cueBall],
   };
@@ -27,72 +26,59 @@ export function createSimulation() {
   const surface = SurfaceMaterial({
     gravity: controls.gravity,
     muSliding: controls.muSliding,
+    muRolling: controls.muRolling,
+    spinDamping: controls.spinDamping,
   });
 
   const engine = new Engine((dt) => {
-
     cueBall.mass = controls.ballMass;
     cueBall.radius = controls.ballRadius;
 
     surface.muSliding = controls.muSliding;
+    surface.muRolling = controls.muRolling;
+    surface.spinDamping = controls.spinDamping;
+    surface.gravity = controls.gravity;
 
     if (isRunning) {
       simulationTime += dt;
     }
 
-    updateSimulation({
-      world,
-      surface,
-      dt,
-    });
+    updateSimulation({ world, surface, dt });
 
-    // check stop timer
-    const speed = vec2.length(cueBall.velocity);
+    const speed = Math.hypot(cueBall.velocity.x, cueBall.velocity.y);
+    const spin = vec3.length(cueBall.angularVelocity);
 
-    if (speed < 1e-5 && isRunning) {
-      cueBall.velocity.x = 0;
-      cueBall.velocity.y = 0;
-
+    if (speed < PHYSICS.stopSpeed && spin < PHYSICS.stopAngular && isRunning) {
+      vec3.zero(cueBall.velocity);
+      vec3.zero(cueBall.angularVelocity);
       isRunning = false;
     }
   });
 
   function shoot() {
-
     simulationTime = 0;
     isRunning = true;
 
-    const radian = controls.aimDeg * Math.PI / 180;
+    const { impulse, contactOffset } = computeStrike(cueBall, controls);
 
-    const impulse = vec2.create(
-      Math.cos(radian) * controls.shotImpulse,
-      Math.sin(radian) * controls.shotImpulse,
-    );
-
-    applyImpulse(
-      cueBall,
-      impulse
-    );
+    applyImpulseAtContact(cueBall, impulse, contactOffset);
   }
 
   function reset() {
-
-    vec2.set(
+    vec3.set(
       cueBall.position,
       START_POINT.x,
-      START_POINT.y
+      START_POINT.y,
+      START_POINT.z
     );
 
-    vec2.set(
-      cueBall.velocity,
-      0,
-      0
-    );
+    vec3.zero(cueBall.velocity);
+    vec3.zero(cueBall.angularVelocity);
+    vec3.zero(cueBall.orientation);
 
     cueBall.distanceTraveled = 0;
     simulationTime = 0;
     isRunning = false;
-
   }
 
   return {
@@ -103,7 +89,6 @@ export function createSimulation() {
     shoot,
     reset,
     getSimulationTime: () => simulationTime,
-
     getMetrics: () =>
       calculateMetrics({
         ball: cueBall,

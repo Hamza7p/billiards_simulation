@@ -1,11 +1,16 @@
-import * as vec2 from '../math/Vector2';
+import * as vec3 from '../math/Vector3';
 
-// x += v * dt (delta time) 
 export function integrateMotion(ball, dt) {
-  vec2.addScaled(
+  vec3.addScaled(
     ball.position,
     ball.position,
     ball.velocity,
     dt
   );
+}
+
+export function integrateOrientation(ball, dt) {
+  ball.orientation.x += ball.angularVelocity.x * dt;
+  ball.orientation.y += ball.angularVelocity.y * dt;
+  ball.orientation.z += ball.angularVelocity.z * dt;
 }

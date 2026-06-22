@@ -1,172 +1,213 @@
-import {
-  forwardRef,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-} from 'react';
-
+import { forwardRef, useEffect, useImperativeHandle, useRef,} from 'react';
 import * as THREE from 'three';
-import { COLORS, SIZES, BALL } from '@/config/constants.js';
-import { createTable } from './objects/TableMesh.js';
-import { createBall } from './objects/BallMesh.js';
-import { createAimLine } from './objects/AimLine.js';
+import { COLORS, TABLE_SURFACE_Z, BALL,} from '@/config/constants.js';
 import { createLights } from './Lights.js';
-import Camera from './Camera.js';
+import { createTable } from '../objects/table/createTable.js';
+import { createBall } from '../objects/BallMesh.js';
+import { Camera } from './Camera.js';
 
 const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
-
   const mountRef = useRef(null);
   const contextRef = useRef(null);
 
   useImperativeHandle(ref, () => ({
-
-    sync(ball, controls) {
-
-      // ctx is containing all three.js objects and renderer
+    sync(ballState, controls) {
       const ctx = contextRef.current;
+
       if (!ctx) return;
 
-      // update ball radius if changed
       if (ctx.currentBallRadius !== controls.ballRadius) {
-        const radiusScale = controls.ballRadius / (ctx.currentBallRadius || controls.ballRadius);
-        ctx.ball.scale.multiplyScalar(radiusScale);
-        ctx.currentBallRadius = controls.ballRadius;
+        const scale =
+          controls.ballRadius /
+          ctx.currentBallRadius;
+
+        ctx.ball.scale.multiplyScalar(scale);
+        ctx.currentBallRadius =
+          controls.ballRadius;
       }
 
-      // ball position
+      const z = TABLE_SURFACE_Z + controls.ballRadius;
+
       ctx.ball.position.set(
-        ball.position.x,
-        ball.position.y,
-        controls.ballRadius
+        ballState.position.x,
+        ballState.position.y,
+        z
       );
 
-      // aim line (arrow)
-      const angle = controls.aimDeg * Math.PI / 180;
-
-      const dirX = Math.cos(angle);
-      const dirY = Math.sin(angle);
-
-      const scale = controls.shotImpulse * 0.5;
-
-      const direction = new THREE.Vector3(dirX, dirY, 0);
-      const offset = ball.radius + 0.05; // Additional offset from ball
-
-      // when ball is currently starting position
-      const start = new THREE.Vector3(
-          ball.position.x + dirX * offset,
-          ball.position.y + dirY * offset,
-          ball.radius + 0.002 
-        );
-
-      // arrow visibility
-      if (ball.velocity.x === 0 && ball.velocity.y === 0) {
-        ctx.aimLine.visible = true;
-        ctx.aimLine.position.copy(start);
-        ctx.aimLine.setDirection(direction);
-        ctx.aimLine.setLength(scale);
-      } else {
-        ctx.aimLine.visible = false;
-      }
-
-      // render
-      ctx.renderer.render(
-        ctx.scene,
-        ctx.camera
+      ctx.ball.rotation.set(
+        ballState.orientation.x,
+        ballState.orientation.y,
+        ballState.orientation.z
       );
+    },
+
+    resetCamera() {
+      const ctx = contextRef.current;
+
+      if (!ctx) return;
+
+      ctx.camera.reset();
     },
   }));
 
   useEffect(() => {
+    const mount = mountRef.current;
 
-    // element to mount the scene
-    const element = mountRef.current;
-    if (!element) return;
+    if (!mount) return;
 
-    // Scene
+    /*
+     * Scene
+     */
     const scene = new THREE.Scene();
+
     scene.background = new THREE.Color(COLORS.background);
 
-    // Camera
-    const camera = Camera(element.clientWidth, element.clientHeight);
+    scene.fog = new THREE.Fog(
+      COLORS.background,
+      5,
+      12
+    );
 
-    // Renderer
+    /*
+     * Renderer
+     */
     const renderer = new THREE.WebGLRenderer({
         antialias: true,
       });
 
     renderer.setSize(
-      element.clientWidth,
-      element.clientHeight
+      mount.clientWidth,
+      mount.clientHeight
     );
 
     renderer.setPixelRatio(
-      Math.min(
-        window.devicePixelRatio,
-        2
-      )
+      Math.min(window.devicePixelRatio, 2)
     );
 
-    element.appendChild(renderer.domElement);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-    // Create scene objects
+    mount.appendChild(renderer.domElement);
+
+    /*
+     * Camera
+     */
+    const camera = new Camera(
+      mount.clientWidth,
+      mount.clientHeight,
+      renderer.domElement
+    );
+
+    /*
+     * World
+     */
     createLights(scene);
     createTable(scene);
+
     const ball = createBall(scene);
-    const aimLine = createAimLine(scene);
 
-    renderer.render(scene, camera);
+    ball.position.z = TABLE_SURFACE_Z + BALL.radius;
 
+    /*
+     * Debug Contact Marker
+     */
+    const contactMarker = new THREE.Mesh(
+      new THREE.SphereGeometry(
+        0.006,
+        8,
+        8
+      ),
+      new THREE.MeshStandardMaterial({
+        color: COLORS.aim,
+        emissive: COLORS.aim,
+        emissiveIntensity: 0.4,
+      })
+    );
+
+    contactMarker.visible = false;
+
+    scene.add(contactMarker);
+
+    /*
+     * Shared Context
+     */
     contextRef.current = {
       scene,
-      camera,
       renderer,
+      camera,
       ball,
-      aimLine,
+      contactMarker,
       currentBallRadius: BALL.radius,
     };
 
-    // Resize
-    function onResize() {
+    /*
+     * Resize
+     */
+    const handleResize = () => {
 
-      const width = element.clientWidth;
-      const height = element.clientHeight;
-      const view = SIZES.view;
+      const width = mount.clientWidth;
+      const height = mount.clientHeight;
 
-      const aspect = width / height;
-
-      camera.left = -view * aspect;
-      camera.right = view * aspect;
-      camera.top = view;
-      camera.bottom = -view;
-
-      camera.updateProjectionMatrix();
-
-      renderer.setSize(width, height);
-
-      renderer.render(
-        scene,
-        camera
-      );
-    }
-
-    window.addEventListener(
-      'resize',
-      onResize
-    );
-
-    return () => {
-      window.removeEventListener(
-        'resize',
-        onResize
+      camera.resize(
+        width,
+        height
       );
 
-      renderer.dispose();
-
-      element.removeChild(
-        renderer.domElement
+      renderer.setSize(
+        width,
+        height
       );
     };
 
+    window.addEventListener(
+      'resize',
+      handleResize
+    );
+
+    /*
+     * Render Loop
+     */
+    let animationId;
+
+    const animate = () => {
+      animationId =
+        requestAnimationFrame(
+          animate
+        );
+
+      camera.update();
+
+      renderer.render(
+        scene,
+        camera.camera
+      );
+    };
+
+    animate();
+
+    /*
+     * Cleanup
+     */
+    return () => {
+      cancelAnimationFrame(
+        animationId
+      );
+
+      window.removeEventListener(
+        'resize',
+        handleResize
+      );
+
+      camera.dispose();
+
+      renderer.dispose();
+
+      mount.removeChild(
+        renderer.domElement
+      );
+
+      contextRef.current = null;
+    };
   }, []);
 
   return (

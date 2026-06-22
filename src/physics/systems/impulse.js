@@ -1,11 +1,23 @@
-import * as vec2 from '../math/Vector2';
+import * as vec3 from '../math/Vector3';
+import calculateInertia from '../metrics/inertia';
 
-// Δv = J / m
-export function applyImpulse(ball, impulse) {
-  vec2.addScaled(
+const torque = vec3.create();
+
+/** Δv = J/m, Δω = (r × J) / I */
+export function applyImpulseAtContact(ball, impulse, contactOffset) {
+  const invMass = 1 / ball.mass;
+  const invI = 1 / calculateInertia(ball.mass, ball.radius);
+
+  vec3.addScaled(
     ball.velocity,
     ball.velocity,
     impulse,
-    1 / ball.mass
+    invMass
   );
+
+  vec3.cross(torque, contactOffset, impulse);
+
+  ball.angularVelocity.x += torque.x * invI;
+  ball.angularVelocity.y += torque.y * invI;
+  ball.angularVelocity.z += torque.z * invI;
 }
