@@ -1,55 +1,50 @@
 import * as vec3 from '../math/Vector3';
 
-const forward = vec3.create();
-const right = vec3.create();
-const up = vec3.create();
-const impulseDir = vec3.create();
-const baseContact = vec3.create();
-const tangentOffset = vec3.create();
-const contactOffset = vec3.create();
-const impulse = vec3.create();
-
 /**
  * Compute cue strike impulse and contact offset from aim, elevation, and contact point.
  * @returns {{ impulse: object, contactOffset: object, cueDirection: object }}
  */
 export function computeStrike(ball, controls) {
-  const aimRad = controls.aimDeg * Math.PI / 180;
-  const elevRad = controls.cueElevDeg * Math.PI / 180;
-  const r = ball.radius;
+  const θ = controls.aimDeg * Math.PI / 180;
+  const φ = controls.cueElevDeg * Math.PI / 180;
+  const R = ball.radius;
+  const J = controls.shotImpulse;
 
-  vec3.set(forward, Math.cos(aimRad), Math.sin(aimRad), 0);
-  vec3.set(up, 0, 0, 1);
-  vec3.cross(right, forward, up);
-  vec3.normalize(right, right);
-
-  // Impulse direction: cue pushes ball along aim, modulated by elevation
-  vec3.set(
-    impulseDir,
-    Math.cos(elevRad) * forward.x,
-    Math.cos(elevRad) * forward.y,
-    -Math.sin(elevRad)
+  const d = vec3.create(
+    Math.cos(φ) * Math.cos(θ),
+    Math.cos(φ) * Math.sin(θ),
+    Math.sin(φ),
   );
-  vec3.normalize(impulseDir, impulseDir);
 
-  // Contact point on sphere surface (local offsets: x=side, y=follow/draw, z=height)
-  vec3.copy(baseContact, impulseDir);
-  vec3.scale(baseContact, baseContact, r);
+  const impulse = vec3.create();
+  vec3.scale(impulse, d, J);
 
-  vec3.zero(tangentOffset);
-  vec3.addScaled(tangentOffset, tangentOffset, right, controls.contactX * r * 0.85);
-  vec3.addScaled(tangentOffset, tangentOffset, forward, controls.contactY * r * 0.85);
-  vec3.addScaled(tangentOffset, tangentOffset, up, controls.contactZ * r * 0.85);
+  const worldUp = vec3.create(0, 0, 1);
 
-  vec3.add(contactOffset, baseContact, tangentOffset);
-  vec3.normalize(contactOffset, contactOffset);
-  vec3.scale(contactOffset, contactOffset, r);
+  const side = vec3.create();
+  vec3.cross(side, d, worldUp);
+  vec3.normalize(side, side);
 
-  vec3.scale(impulse, impulseDir, controls.shotImpulse);
+  const upCue = vec3.create();
+  vec3.cross(upCue, side, d);
+  vec3.normalize(upCue, upCue);
 
-  return {
-    impulse,
-    contactOffset,
-    cueDirection: vec3.clone(impulseDir),
-  };
+  let a = controls.contactX;
+  let b = controls.contactY;
+
+  const mag = Math.sqrt(a*a + b*b);
+
+  if (mag > 1) {
+    a /= mag;
+    b /= mag;
+  }
+
+  const c = Math.sqrt(Math.max(0, 1 - a*a - b*b));
+
+  const r = vec3.create();
+  vec3.addScaled(r, r, d, -c*R);
+  vec3.addScaled(r, r, side, a*R);
+  vec3.addScaled(r, r, upCue, b*R);
+
+  return {impulse, r};
 }

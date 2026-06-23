@@ -8,16 +8,8 @@ export function applyImpulseAtContact(ball, impulse, contactOffset) {
   const invMass = 1 / ball.mass;
   const invI = 1 / calculateInertia(ball.mass, ball.radius);
 
-  vec3.addScaled(
-    ball.velocity,
-    ball.velocity,
-    impulse,
-    invMass
-  );
+  vec3.addScaled(ball.velocity, ball.velocity, impulse, invMass);
 
   vec3.cross(torque, contactOffset, impulse);
-
-  ball.angularVelocity.x += torque.x * invI;
-  ball.angularVelocity.y += torque.y * invI;
-  ball.angularVelocity.z += torque.z * invI;
+  vec3.addScaled(ball.angularVelocity, ball.angularVelocity, torque, invI);
 }
