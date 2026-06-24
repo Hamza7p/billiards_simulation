@@ -59,9 +59,9 @@ export function createSimulation() {
     simulationTime = 0;
     isRunning = true;
 
-    const { impulse, contactOffset } = computeStrike(cueBall, controls);
+    const { impulse, r } = computeStrike(cueBall, controls);
 
-    applyImpulseAtContact(cueBall, impulse, contactOffset);
+    applyImpulseAtContact(cueBall, impulse, r);
   }
 
   function reset() {
