@@ -12,9 +12,9 @@ export const SURFACE = {
 };
 
 export const PHYSICS = {
-  slipThreshold: 1e-4,
-  stopSpeed: 1e-5,
-  stopAngular: 1e-3,
+  slipThreshold: 0.1,
+  stopSpeed: 0.001,
+  stopAngular: 0.1,
   railRestitution: 0.75,
 };
 

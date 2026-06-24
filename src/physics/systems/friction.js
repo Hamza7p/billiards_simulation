@@ -1,57 +1,74 @@
 import * as vec3 from '../math/Vector3';
-import calculateInertia from '../metrics/inertia';
 import { PHYSICS } from '@/config/constants';
-import { applyRollingResistance } from './rolling';
-
-const contactRadius = vec3.create();
-const omegaCrossR = vec3.create();
-const frictionImpulse = vec3.create();
-const torque = vec3.create();
 
 export function applyFriction(ball, surface, dt) {
-  const r = ball.radius;
-  const I = calculateInertia(ball.mass, r);
-  const invI = 1 / I;
-  const invMass = 1 / ball.mass;
-  const eps = PHYSICS.slipThreshold;
+  const vc = computeContactVelocity(ball);
+  const g = surface.gravity;
+  const direction = vec3.create();
 
-  vec3.set(contactRadius, 0, 0, -r);
-  vec3.cross(omegaCrossR, ball.angularVelocity, contactRadius);
+  const slipSpeed = vec3.length(vc);
 
-  const slipX = ball.velocity.x + omegaCrossR.x;
-  const slipY = ball.velocity.y + omegaCrossR.y;
-  const slipSpeed = Math.hypot(slipX, slipY);
-
-  if (slipSpeed > eps) {
-    const maxImpulse = surface.muSliding * ball.mass * surface.gravity * dt;
-    const slipHatX = slipX / slipSpeed;
-    const slipHatY = slipY / slipSpeed;
-    const impulseMag = Math.min(maxImpulse, ball.mass * slipSpeed);
-
-    vec3.set(
-      frictionImpulse,
-      -slipHatX * impulseMag,
-      -slipHatY * impulseMag,
-      0
-    );
-
-    vec3.addScaled(ball.velocity, ball.velocity, frictionImpulse, invMass);
-
-    vec3.cross(torque, contactRadius, frictionImpulse);
-    ball.angularVelocity.x += torque.x * invI;
-    ball.angularVelocity.y += torque.y * invI;
-    ball.angularVelocity.z += torque.z * invI;
-  } else {
-    applyRollingResistance(ball, surface, dt);
+  // Sliding
+  if (slipSpeed > PHYSICS.slipThreshold) {
+    vec3.normalize(direction, vc);
+    updateVelocity(ball, g, surface.muSliding, direction, dt);
+    updateAngularVelocity(ball, g, surface.muSliding, direction, dt);
   }
+
+  // Rolling
+  else {
+    vec3.normalize(direction, ball.velocity);
+    updateVelocity(ball, g, surface.muRolling, direction, dt);
+    ball.angularVelocity.x = -ball.velocity.y / ball.radius;
+    ball.angularVelocity.y = ball.velocity.x / ball.radius;
+  }
+
+  // Side Spin
+  ball.angularVelocity.z *= 1 - surface.spinDamping;
+}
+
+function computeContactVelocity(ball) {
+  const rc = vec3.create(0, 0, -ball.radius);
+
+  const wrc = vec3.create();
+  vec3.cross(wrc, ball.angularVelocity, rc);
+
+  const vc = vec3.create();
+  vec3.add(vc, ball.velocity, wrc);
+
+  return vc;
+}
+
+export function updateVelocity(ball, g, mu, direction, dt) {
+  const acceleration = vec3.create();
+  vec3.scale(acceleration, direction, -mu * g);
+
+  vec3.addScaled(ball.velocity, ball.velocity, acceleration, dt);
+}
+
+export function updateAngularVelocity(ball, g, mu, direction, dt) {
+  const R = ball.radius;
+  const rc = vec3.create(0, 0, -R);
+
+  const rcs = vec3.create();
+  vec3.cross(rcs, rc, direction);
+
+  const angularAcc = vec3.create();
+  vec3.scale(angularAcc, rcs, (-5 * mu * g) / (2 * R * R));
+
+  vec3.addScaled(ball.angularVelocity, ball.angularVelocity, angularAcc, dt);
 }
 
 export function settleBall(ball) {
-  const speed = Math.hypot(ball.velocity.x, ball.velocity.y);
+  const speed = vec3.length(ball.velocity);
   const spin = vec3.length(ball.angularVelocity);
 
-  if (speed < PHYSICS.stopSpeed && spin < PHYSICS.stopAngular) {
+  if (speed < PHYSICS.stopSpeed)
     vec3.zero(ball.velocity);
+
+  if (spin < PHYSICS.stopAngular)
     vec3.zero(ball.angularVelocity);
-  }
+
+  else if (Math.abs(ball.angularVelocity.z) < PHYSICS.stopAngular)
+    ball.angularVelocity.z = 0;
 }
