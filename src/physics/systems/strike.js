@@ -2,7 +2,7 @@ import * as vec3 from '../math/Vector3';
 
 /**
  * Compute cue strike impulse and contact offset from aim, elevation, and contact point.
- * @returns {{ impulse: object, contactOffset: object, cueDirection: object }}
+ * @returns {{ impulse: object, r: object }}
  */
 export function computeStrike(ball, controls) {
   const θ = controls.aimDeg * Math.PI / 180;
