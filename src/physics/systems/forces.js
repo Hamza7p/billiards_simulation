@@ -12,7 +12,7 @@ export function applyForces(ball, surface, dt) {
   }
 
   // Side Spin
-  ball.angularVelocity.z *= 1 - surface.spinDamping * dt;
+  ball.angularVelocity.z *= 1 - surface.spinDamping * dt * 100;
 
   const vc = computeContactVelocity(ball);
   const slipSpeed = vec3.length(vc);
