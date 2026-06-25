@@ -31,13 +31,14 @@ const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
       ctx.ball.position.set(
         ballState.position.x,
         ballState.position.y,
-        z
+        z,
       );
 
       ctx.ball.rotation.set(
         ballState.orientation.x,
         ballState.orientation.y,
-        ballState.orientation.z
+        ballState.orientation.z,
+        ballState.orientation.w,
       );
     },
 

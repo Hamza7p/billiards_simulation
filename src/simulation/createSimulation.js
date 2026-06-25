@@ -8,6 +8,7 @@ import { updateSimulation } from './updateSimulation';
 import { createControls } from '../physics/metrics/controls';
 import { START_POINT, PHYSICS } from '@/config/constants';
 import { calculateMetrics } from '@/physics/metrics/metrics';
+import { Quaternion } from 'three';
 
 export function createSimulation() {
   const controls = createControls();
@@ -74,7 +75,8 @@ export function createSimulation() {
 
     vec3.zero(cueBall.velocity);
     vec3.zero(cueBall.angularVelocity);
-    vec3.zero(cueBall.orientation);
+    // vec3.zero(cueBall.orientation);
+    cueBall.orientation = new Quaternion();
 
     cueBall.distanceTraveled = 0;
     simulationTime = 0;
