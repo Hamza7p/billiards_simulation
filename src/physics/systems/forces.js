@@ -1,12 +1,22 @@
 import * as vec3 from '../math/Vector3';
 import { PHYSICS } from '@/config/constants';
 
-export function applyFriction(ball, surface, dt) {
-  const vc = computeContactVelocity(ball);
+export function applyForces(ball, surface, dt) {
   const g = surface.gravity;
-  const direction = vec3.create();
+  const R = ball.radius;
 
+  // Jumping
+  if (ball.position.z > R) {
+    ball.velocity.z -= g * dt;
+    return;
+  }
+
+  // Side Spin
+  ball.angularVelocity.z *= 1 - surface.spinDamping * dt;
+
+  const vc = computeContactVelocity(ball);
   const slipSpeed = vec3.length(vc);
+  const direction = vec3.create();
 
   // Sliding
   if (slipSpeed > PHYSICS.slipThreshold) {
@@ -19,12 +29,9 @@ export function applyFriction(ball, surface, dt) {
   else {
     vec3.normalize(direction, ball.velocity);
     updateVelocity(ball, g, surface.muRolling, direction, dt);
-    ball.angularVelocity.x = -ball.velocity.y / ball.radius;
-    ball.angularVelocity.y = ball.velocity.x / ball.radius;
+    ball.angularVelocity.x = -ball.velocity.y / R;
+    ball.angularVelocity.y = ball.velocity.x / R;
   }
-
-  // Side Spin
-  ball.angularVelocity.z *= 1 - surface.spinDamping;
 }
 
 function computeContactVelocity(ball) {
