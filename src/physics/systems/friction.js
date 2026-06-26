@@ -1,57 +1,90 @@
-import * as vec3 from '../math/Vector3';
-import calculateInertia from '../metrics/inertia';
-import { PHYSICS } from '@/config/constants';
-import { applyRollingResistance } from './rolling';
 
-const contactRadius = vec3.create();
-const omegaCrossR = vec3.create();
-const frictionImpulse = vec3.create();
-const torque = vec3.create();
+/*import * as vec2 from '../math/Vector2';
 
-export function applyFriction(ball, surface, dt) {
-  const r = ball.radius;
-  const I = calculateInertia(ball.mass, r);
-  const invI = 1 / I;
-  const invMass = 1 / ball.mass;
-  const eps = PHYSICS.slipThreshold;
 
-  vec3.set(contactRadius, 0, 0, -r);
-  vec3.cross(omegaCrossR, ball.angularVelocity, contactRadius);
+const temp = vec2.create();
 
-  const slipX = ball.velocity.x + omegaCrossR.x;
-  const slipY = ball.velocity.y + omegaCrossR.y;
-  const slipSpeed = Math.hypot(slipX, slipY);
+export function applySlidingFriction(ball, surface, dt) {
+  const speed = vec2.length(ball.velocity);
 
-  if (slipSpeed > eps) {
-    const maxImpulse = surface.muSliding * ball.mass * surface.gravity * dt;
-    const slipHatX = slipX / slipSpeed;
-    const slipHatY = slipY / slipSpeed;
-    const impulseMag = Math.min(maxImpulse, ball.mass * slipSpeed);
-
-    vec3.set(
-      frictionImpulse,
-      -slipHatX * impulseMag,
-      -slipHatY * impulseMag,
-      0
-    );
-
-    vec3.addScaled(ball.velocity, ball.velocity, frictionImpulse, invMass);
-
-    vec3.cross(torque, contactRadius, frictionImpulse);
-    ball.angularVelocity.x += torque.x * invI;
-    ball.angularVelocity.y += torque.y * invI;
-    ball.angularVelocity.z += torque.z * invI;
-  } else {
-    applyRollingResistance(ball, surface, dt);
+  if (speed < 1e-5) {
+    ball.velocity.x = 0;
+    ball.velocity.y = 0;
+    return;
   }
+
+  // get direction of velocity
+  vec2.normalize(temp, ball.velocity);
+
+  // sliding friction opposite to motion
+  temp.x *= -1;
+  temp.y *= -1;
+
+  // F = μmg
+  const frictionForce = surface.muSliding * ball.mass * surface.gravity;
+
+  // a = F/m
+  const deceleration = frictionForce / ball.mass;
+
+  // Δv = a * dt (delta time)
+  const deltaSpeed = deceleration * dt;
+
+  // prevent reversing direction
+  const nextSpeed = Math.max(0, speed - deltaSpeed);
+
+  vec2.scale(
+    ball.velocity,
+    temp,
+    nextSpeed
+  );
+
+  // restore correct direction
+  ball.velocity.x *= -1;
+  ball.velocity.y *= -1;
 }
+*/
+import * as vec3 from '../math/Vector3';
 
-export function settleBall(ball) {
-  const speed = Math.hypot(ball.velocity.x, ball.velocity.y);
-  const spin = vec3.length(ball.angularVelocity);
+const temp = vec3.create();
+console.log("🔥 applySlidingFriction is called!");
+export function applySlidingFriction(ball, surface, dt) {
+  // ✅ سطر المراقبة: يعرض لون الكرة التي يطبق عليها الاحتكاك
+  //console.log("Friction applied to ball with color:", ball.color || "white");
 
-  if (speed < PHYSICS.stopSpeed && spin < PHYSICS.stopAngular) {
-    vec3.zero(ball.velocity);
-    vec3.zero(ball.angularVelocity);
+  const speed = vec3.length(ball.velocity);
+
+  if (speed < 1e-5) {
+    ball.velocity.x = 0;
+    ball.velocity.y = 0;
+    ball.velocity.z = 0;
+    return;
   }
+
+  // اتجاه السرعة (متجه وحدة)
+  vec3.normalize(temp, ball.velocity);
+
+  // الاحتكاك معاكس للحركة
+  temp.x *= -1;
+  temp.y *= -1;
+  temp.z *= -1;
+
+  // F = μmg
+  const frictionForce = surface.muSliding * ball.mass * surface.gravity;
+
+  // a = F/m
+  const deceleration = frictionForce / ball.mass;
+
+  // Δv = a * dt
+  const deltaSpeed = deceleration * dt;
+
+  // السرعة الجديدة (لا تقل عن صفر)
+  const nextSpeed = Math.max(0, speed - deltaSpeed);
+
+  // تحديث متجه السرعة
+  vec3.scale(ball.velocity, temp, nextSpeed);
+
+  // استعادة الاتجاه الصحيح (لأن temp كان معكوساً)
+  ball.velocity.x *= -1;
+  ball.velocity.y *= -1;
+  ball.velocity.z *= -1;
 }

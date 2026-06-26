@@ -1,224 +1,232 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef,} from 'react';
+
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react';
+
 import * as THREE from 'three';
-import { COLORS, TABLE_SURFACE_Z, BALL,} from '@/config/constants.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { BALL } from '@/config/constants.js';
+import { createTable } from './objects/TableMesh.js';
+import { createBall } from './objects/BallMesh.js';
+import { createAimLine } from './objects/AimLine.js';
 import { createLights } from './Lights.js';
-import { createTable } from '../objects/table/createTable.js';
-import { createBall } from '../objects/BallMesh.js';
-import { Camera } from './Camera.js';
 
 const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
   const mountRef = useRef(null);
   const contextRef = useRef(null);
+  const coloredBallsRef = useRef([]);
+  const [initialized, setInitialized] = useState(false);
+
+  const keys = useRef({ w: false, s: false, a: false, d: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false });
+
+  // ✅ إنشاء الكرات الملونة (تُستدعى مرة واحدة)
+  const createColoredBalls = (scene, worldBalls, controls) => {
+    if (!worldBalls || worldBalls.length === 0) return;
+    
+    // حذف أي كرات قديمة
+    coloredBallsRef.current.forEach(ball => {
+      if (ball.parent) scene.remove(ball);
+    });
+    coloredBallsRef.current = [];
+
+    // إنشاء الكرات الجديدة
+    worldBalls.forEach((ballData) => {
+      if (ballData.color) {
+        const coloredBall = createBall(scene, ballData.color);
+        coloredBall.position.set(ballData.position.x, ballData.position.y, controls.ballRadius);
+        coloredBallsRef.current.push(coloredBall);
+      }
+    });
+    setInitialized(true);
+  };
+
+ 
 
   useImperativeHandle(ref, () => ({
-    sync(ballState, controls) {
+    sync(ball, controls, worldBalls) {
       const ctx = contextRef.current;
-
       if (!ctx) return;
 
+      // تحديث الكرة البيضاء
       if (ctx.currentBallRadius !== controls.ballRadius) {
-        const scale =
-          controls.ballRadius /
-          ctx.currentBallRadius;
+        const radiusScale = controls.ballRadius / (ctx.currentBallRadius || controls.ballRadius);
+        ctx.ball.scale.multiplyScalar(radiusScale);
+        ctx.currentBallRadius = controls.ballRadius;
+      }
+      ctx.ball.position.set(ball.position.x, ball.position.y, controls.ballRadius);
 
-        ctx.ball.scale.multiplyScalar(scale);
-        ctx.currentBallRadius =
-          controls.ballRadius;
+      // ✅ إنشاء الكرات الملونة إذا لم تكن موجودة
+      if (worldBalls && worldBalls.length > 0 && !initialized) {
+        createColoredBalls(ctx.scene, worldBalls, controls);
+      }
+     // ✅ تحديث مواقع الكرات الملونة
+      if (worldBalls && worldBalls.length > 0 && initialized) {
+        let idx = 0;
+        worldBalls.forEach((ballData) => {
+          if (ballData.color && ballData !== ball) {
+            if (coloredBallsRef.current[idx]) {
+              coloredBallsRef.current[idx].position.set(
+                ballData.position.x,
+                ballData.position.y,
+                controls.ballRadius
+              );
+            }
+            idx++;
+          }
+        });
       }
 
-      const z = TABLE_SURFACE_Z + controls.ballRadius;
-
-      ctx.ball.position.set(
-        ballState.position.x,
-        ballState.position.y,
-        z
+      // خط التصويب
+      const angle = controls.aimDeg * Math.PI / 180;
+      const dirX = Math.cos(angle);
+      const dirY = Math.sin(angle);
+      const scale = controls.shotImpulse * 0.5;
+      const direction = new THREE.Vector3(dirX, dirY, 0);
+      const offset = ball.radius + 0.05;
+      const start = new THREE.Vector3(
+        ball.position.x + dirX * offset,
+        ball.position.y + dirY * offset,
+        ball.radius + 0.002
       );
 
-      ctx.ball.rotation.set(
-        ballState.orientation.x,
-        ballState.orientation.y,
-        ballState.orientation.z
-      );
+      if (ball.velocity.x === 0 && ball.velocity.y === 0) {
+        ctx.aimLine.visible = true;
+        ctx.aimLine.position.copy(start);
+        ctx.aimLine.setDirection(direction);
+        ctx.aimLine.setLength(scale);
+      } else {
+        ctx.aimLine.visible = false;
+      }
+
+      ctx.renderer.render(ctx.scene, ctx.camera);
     },
-
-    resetCamera() {
-      const ctx = contextRef.current;
-
-      if (!ctx) return;
-
-      ctx.camera.reset();
-    },
+    //resetColoredBalls, // ✅ تمرير دالة إعادة التعيين
   }));
 
   useEffect(() => {
-    const mount = mountRef.current;
+    const element = mountRef.current;
+    if (!element) return;
 
-    if (!mount) return;
-
-    /*
-     * Scene
-     */
     const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xffb6c1);
 
-    scene.background = new THREE.Color(COLORS.background);
+    const camera = new THREE.PerspectiveCamera(45, element.clientWidth / element.clientHeight, 0.1, 1000);
+    camera.position.set(0, 8, 12);
+    camera.lookAt(0, 0, 0);
 
-    scene.fog = new THREE.Fog(
-      COLORS.background,
-      5,
-      12
-    );
-
-    /*
-     * Renderer
-     */
-    const renderer = new THREE.WebGLRenderer({
-        antialias: true,
-      });
-
-    renderer.setSize(
-      mount.clientWidth,
-      mount.clientHeight
-    );
-
-    renderer.setPixelRatio(
-      Math.min(window.devicePixelRatio, 2)
-    );
-
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(element.clientWidth, element.clientHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    element.appendChild(renderer.domElement);
 
-    mount.appendChild(renderer.domElement);
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.enableZoom = true;
+    controls.zoomSpeed = 1.2;
+    controls.enablePan = true;
+    controls.panSpeed = 0.8;
+    controls.rotateSpeed = 1.0;
+    controls.target.set(0, 0, 0);
 
-    /*
-     * Camera
-     */
-    const camera = new Camera(
-      mount.clientWidth,
-      mount.clientHeight,
-      renderer.domElement
-    );
+    // أحداث الكيبورد
+    const handleKeyDown = (e) => {
+      const key = e.key;
+      if (keys.current.hasOwnProperty(key)) {
+        keys.current[key] = true;
+        e.preventDefault();
+      }
+      if (key === 'ArrowUp') {
+        controls.target.y += 0.1;
+        camera.position.y += 0.1;
+      }
+      if (key === 'ArrowDown') {
+        controls.target.y -= 0.1;
+        camera.position.y -= 0.1;
+      }
+      if (key === 'ArrowLeft') {
+        controls.target.x -= 0.1;
+        camera.position.x -= 0.1;
+      }
+      if (key === 'ArrowRight') {
+        controls.target.x += 0.1;
+        camera.position.x += 0.1;
+      }
+    };
 
-    /*
-     * World
-     */
+    const handleKeyUp = (e) => {
+      const key = e.key;
+      if (keys.current.hasOwnProperty(key)) {
+        keys.current[key] = false;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    const updateKeyboardControls = () => {
+      const rotateSpeed = 0.02;
+      if (keys.current.a) controls.rotateLeft(rotateSpeed);
+      if (keys.current.d) controls.rotateLeft(-rotateSpeed);
+      if (keys.current.w) {
+        controls.object.position.y += 0.1;
+        controls.target.y += 0.1;
+      }
+      if (keys.current.s) {
+        controls.object.position.y -= 0.1;
+        controls.target.y -= 0.1;
+      }
+    };
+
     createLights(scene);
     createTable(scene);
-
     const ball = createBall(scene);
+    const aimLine = createAimLine(scene);
 
-    ball.position.z = TABLE_SURFACE_Z + BALL.radius;
+    function animate() {
+      requestAnimationFrame(animate);
+      updateKeyboardControls();
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
 
-    /*
-     * Debug Contact Marker
-     */
-    const contactMarker = new THREE.Mesh(
-      new THREE.SphereGeometry(
-        0.006,
-        8,
-        8
-      ),
-      new THREE.MeshStandardMaterial({
-        color: COLORS.aim,
-        emissive: COLORS.aim,
-        emissiveIntensity: 0.4,
-      })
-    );
-
-    contactMarker.visible = false;
-
-    scene.add(contactMarker);
-
-    /*
-     * Shared Context
-     */
     contextRef.current = {
       scene,
-      renderer,
       camera,
+      renderer,
       ball,
-      contactMarker,
+      aimLine,
       currentBallRadius: BALL.radius,
     };
 
-    /*
-     * Resize
-     */
-    const handleResize = () => {
-
-      const width = mount.clientWidth;
-      const height = mount.clientHeight;
-
-      camera.resize(
-        width,
-        height
-      );
-
-      renderer.setSize(
-        width,
-        height
-      );
+    const onResize = () => {
+      const width = element.clientWidth;
+      const height = element.clientHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
     };
 
-    window.addEventListener(
-      'resize',
-      handleResize
-    );
+    window.addEventListener('resize', onResize);
 
-    /*
-     * Render Loop
-     */
-    let animationId;
-
-    const animate = () => {
-      animationId =
-        requestAnimationFrame(
-          animate
-        );
-
-      camera.update();
-
-      renderer.render(
-        scene,
-        camera.camera
-      );
-    };
-
-    animate();
-
-    /*
-     * Cleanup
-     */
     return () => {
-      cancelAnimationFrame(
-        animationId
-      );
-
-      window.removeEventListener(
-        'resize',
-        handleResize
-      );
-
-      camera.dispose();
-
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
       renderer.dispose();
-
-      mount.removeChild(
-        renderer.domElement
-      );
-
-      contextRef.current = null;
+      if (element.contains(renderer.domElement)) {
+        element.removeChild(renderer.domElement);
+      }
     };
   }, []);
 
-  return (
-    <div
-      ref={mountRef}
-      style={{
-        width: '100%',
-        height: '100%',
-      }}
-    />
-  );
+  return <div ref={mountRef} style={{ width: '100%', height: '100%' }} />;
 });
 
 export default BilliardsScene;

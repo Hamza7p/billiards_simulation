@@ -10,7 +10,6 @@ export function clone(v) {
   return { x: v.x, y: v.y };
 }
 
-
 export function copy(out, v) {
   out.x = v.x;
   out.y = v.y;

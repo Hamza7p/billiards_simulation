@@ -1,5 +1,4 @@
 import PanelRow from '@/ui/components/PanelRow.jsx';
-import { ArrowRight } from '@deemlol/next-icons';
 
 export default function SimulationPanel({
   controls,
@@ -7,23 +6,15 @@ export default function SimulationPanel({
   onShoot,
   onReset,
   stats,
-  setSliding
 }) {
   return (
     <aside className="simulation-panel">
-      <div
-        style={{ display: 'flex', justifyContent: 'end', cursor: 'pointer' }}
-        onClick={() => setSliding(false)}
-      >
-        <ArrowRight />
-      </div>
       <h1 className="panel-title">لوحة التحكّم الفيزيائية</h1>
- 
 
       <PanelRow
         label="قوة الضربة"
         en="Shot Impulse"
-        formula="Δv = J/m, Δω = (r×J)/I"
+        formula="Δv = J / m"
         value={controls.shotImpulse.toFixed(3)}
       >
         <input
@@ -33,14 +24,16 @@ export default function SimulationPanel({
           max="2"
           step="0.01"
           value={controls.shotImpulse}
-          onChange={(e) => onChange({ shotImpulse: Number(e.target.value) })}
+          onChange={(e) =>
+            onChange({ shotImpulse: Number(e.target.value) })
+          }
         />
       </PanelRow>
 
       <PanelRow
         label="زاوية التصويب"
         en="Aim Direction"
-        formula="اتجاه أفقي للضربة (°)"
+        formula="x = cos(θ), y = sin(θ)"
         value={controls.aimDeg.toFixed(1)}
       >
         <input
@@ -50,86 +43,16 @@ export default function SimulationPanel({
           max="180"
           step="1"
           value={controls.aimDeg}
-          onChange={(e) => onChange({ aimDeg: Number(e.target.value) })}
+          onChange={(e) =>
+            onChange({ aimDeg: Number(e.target.value) })
+          }
         />
       </PanelRow>
 
       <PanelRow
-        label="ميل العصا"
-        en="Cue Elevation"
-        formula="زاوية ميلان العصا (°)"
-        value={controls.cueElevDeg.toFixed(1)}
-      >
-        <input
-          className="panel-input"
-          type="range"
-          min="0"
-          max="45"
-          step="1"
-          value={controls.cueElevDeg}
-          onChange={(e) => onChange({ cueElevDeg: Number(e.target.value) })}
-        />
-      </PanelRow>
-
-      <h2 className="panel-section-title">نقطة التماس على الكرة</h2>
-
-      <PanelRow
-        label="يمين / يسار"
-        en="Contact X"
-        formula="English (جانبي)"
-        value={controls.contactX.toFixed(2)}
-      >
-        <input
-          className="panel-input"
-          type="range"
-          min="-1"
-          max="1"
-          step="0.05"
-          value={controls.contactX}
-          onChange={(e) => onChange({ contactX: Number(e.target.value) })}
-        />
-      </PanelRow>
-
-      <PanelRow
-        label="أمام / خلف"
-        en="Contact Y"
-        formula="Follow / Draw"
-        value={controls.contactY.toFixed(2)}
-      >
-        <input
-          className="panel-input"
-          type="range"
-          min="-1"
-          max="1"
-          step="0.05"
-          value={controls.contactY}
-          onChange={(e) => onChange({ contactY: Number(e.target.value) })}
-        />
-      </PanelRow>
-
-      <PanelRow
-        label="أعلى / أسفل"
-        en="Contact Z"
-        formula="ارتفاع نقطة التماس"
-        value={controls.contactZ.toFixed(2)}
-      >
-        <input
-          className="panel-input"
-          type="range"
-          min="-1"
-          max="1"
-          step="0.05"
-          value={controls.contactZ}
-          onChange={(e) => onChange({ contactZ: Number(e.target.value) })}
-        />
-      </PanelRow>
-
-      <h2 className="panel-section-title">الاحتكاك والسطح</h2>
-
-      <PanelRow
-        label="احتكاك حركي"
-        en="Kinetic Friction μ_k"
-        formula="Ff = μ_k m g"
+        label="معامل احتكاك القماش"
+        en="Sliding Friction μ"
+        formula="Ff = μmg"
         value={controls.muSliding.toFixed(3)}
       >
         <input
@@ -139,41 +62,9 @@ export default function SimulationPanel({
           max="1"
           step="0.001"
           value={controls.muSliding}
-          onChange={(e) => onChange({ muSliding: Number(e.target.value) })}
-        />
-      </PanelRow>
-
-      <PanelRow
-        label="مقاومة التدحرج"
-        en="Rolling Resistance μ_r"
-        formula="a = μ_r g"
-        value={controls.muRolling.toFixed(3)}
-      >
-        <input
-          className="panel-input"
-          type="range"
-          min="0"
-          max="0.1"
-          step="0.001"
-          value={controls.muRolling}
-          onChange={(e) => onChange({ muRolling: Number(e.target.value) })}
-        />
-      </PanelRow>
-
-      <PanelRow
-        label="تخميد الدوران"
-        en="Spin Damping"
-        formula="ω × (1 − k·dt)"
-        value={controls.spinDamping.toFixed(3)}
-      >
-        <input
-          className="panel-input"
-          type="range"
-          min="0"
-          max="0.2"
-          step="0.001"
-          value={controls.spinDamping}
-          onChange={(e) => onChange({ spinDamping: Number(e.target.value) })}
+          onChange={(e) =>
+            onChange({ muSliding: Number(e.target.value) })
+          }
         />
       </PanelRow>
 
@@ -190,14 +81,16 @@ export default function SimulationPanel({
           max="0.5"
           step="0.005"
           value={controls.ballMass}
-          onChange={(e) => onChange({ ballMass: Number(e.target.value) })}
+          onChange={(e) =>
+            onChange({ ballMass: Number(e.target.value) })
+          }
         />
       </PanelRow>
 
       <PanelRow
         label="نصف قطر الكرة"
         en="Ball Radius"
-        formula="v_slip = v + ω×r"
+        formula="v = ωr"
         value={controls.ballRadius.toFixed(4)}
       >
         <input
@@ -207,9 +100,69 @@ export default function SimulationPanel({
           max="0.08"
           step="0.001"
           value={controls.ballRadius}
-          onChange={(e) => onChange({ ballRadius: Number(e.target.value) })}
+          onChange={(e) =>
+            onChange({ ballRadius: Number(e.target.value) })
+          }
         />
       </PanelRow>
+
+      <PanelRow
+        label="معامل ارتداد الحافة"
+        en="Wall Restitution e"
+        formula="v' = -e v"
+        value={controls.restitutionBallWall.toFixed(3)}
+      >
+        <input
+          className="panel-input"
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={controls.restitutionBallWall}
+          onChange={(e) =>
+            onChange({ restitutionBallWall: Number(e.target.value) })
+          }
+        />
+      </PanelRow>
+
+      <PanelRow
+        label="معامل احتكاك الحافة"
+        en="Wall Friction μc"
+        formula="Jt = μc × Jn"
+        value={controls.muCollision.toFixed(3)}
+      >
+        <input
+          className="panel-input"
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={controls.muCollision}
+          onChange={(e) =>
+            onChange({ muCollision: Number(e.target.value) })
+          }
+        />
+      </PanelRow>
+      
+<PanelRow
+  label="معامل ارتداد الكرات"
+  en="Ball Restitution e"
+  formula="e = (v₂' - v₁')/(v₁ - v₂)"
+  value={controls.restitutionBallBall.toFixed(3)}
+>
+  <input
+    className="panel-input"
+    type="range"
+    min="0"
+    max="1"
+    step="0.01"
+    value={controls.restitutionBallBall}
+    onChange={(e) =>
+      onChange({ restitutionBallBall: Number(e.target.value) })
+    }
+  />
+</PanelRow>
+      
 
       <div className="panel-actions">
         <button className="panel-button" onClick={onShoot}>
@@ -218,62 +171,49 @@ export default function SimulationPanel({
         <button className="panel-button" onClick={onReset}>
           إعادة التعيين
         </button>
-        <button
-          className="panel-button"
-          onClick={() =>
-            onChange({
-              cameraMode: controls.cameraMode === 'perspective' ? 'orthographic' : 'perspective',
-            })
-          }
-        >
-          {controls.cameraMode === 'perspective' ? 'عرض علوي' : 'عرض منظوري'}
-        </button>
-        {/* <button className="panel-button" onClick={onCameraReset}> */}
-          {/* إعادة وضع الكاميرا */}
-        {/* </button> */}
       </div>
 
+      {/* ============================================ */}
+      {/* ✅ معلومات المحاكاة مع سرعة كل كرة بلونها */}
+      {/* ============================================ */}
       <section className="panel-stats">
-        <h2 className="panel-stats-title">مقياس المحاكاة</h2>
+        <h2 className="panel-stats-title">معلومات المحاكاة</h2>
         <div className="panel-stats-grid">
           <div className="panel-stat-item">
-            السرعة: {stats.speed.toFixed(4)} m/s
+            السرعة (البيضاء): {stats.speed.toFixed(4)} m/s
+          </div>
+
+          {stats.ballSpeeds && stats.ballSpeeds.map((ball, idx) => (
+            <div key={idx} className="panel-stat-item">
+              <span
+                style={{
+                  display: 'inline-block',
+                  width: 14,
+                  height: 14,
+                  borderRadius: '50%',
+                  background: `#${ball.color.toString(16).padStart(6, '0')}`,
+                  marginRight: 8,
+                }}
+              />
+              السرعة: {ball.speed.toFixed(4)} m/s
+            </div>
+          ))}
+
+          <div className="panel-stat-item">
+            الموقع X: {stats.x.toFixed(4)}
           </div>
           <div className="panel-stat-item">
-            الدوران |ω|: {stats.spin.toFixed(4)} rad/s
+            الموقع Y: {stats.y.toFixed(4)}
           </div>
           <div className="panel-stat-item">
-            انزلاق التماس: {stats.slipSpeed.toFixed(4)} m/s
-          </div>
-          <div className="panel-stat-item">
-            الموقع X: {stats.position.x.toFixed(4)}
-          </div>
-          <div className="panel-stat-item">
-            الموقع Y: {stats.position.y.toFixed(4)}
-          </div>
-          <div className="panel-stat-item">
-            الزخم: {stats.momentum.toFixed(4)} kg·m/s
-          </div>
-          <div className="panel-stat-item">
-            الطاقة الحركية: {stats.kineticEnergy.toFixed(4)} J
-          </div>
-          <div className="panel-stat-item">
-            الطاقة الدورانية: {stats.rotationalEnergy.toFixed(4)} J
-          </div>
-          <div className="panel-stat-item">
-            قوة الاحتكاك: {stats.frictionForce.toFixed(4)} N
-          </div>
-          <div className="panel-stat-item">
-            التسارع: {stats.acceleration.toFixed(4)} m/s²
-          </div>
-          <div className="panel-stat-item">
-            الزمن: {stats.simulationTime.toFixed(2)} s
-          </div>
-          <div className="panel-stat-item">
-            المسافة: {stats.distanceTraveled.toFixed(4)} m
+            الزمن المستغرق: {stats.time.toFixed(2)} s
           </div>
         </div>
+        
       </section>
+      
     </aside>
   );
+
+  
 }
