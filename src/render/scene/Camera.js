@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { CAMERA } from '@/config/constants.js';
 
 export class Camera {
@@ -8,18 +7,19 @@ export class Camera {
     this.height = height;
     this.domElement = domElement;
 
-    this.moveSpeed = 0.05;
+    // Circle Camera System: theta, phi, radius
+    this.theta = CAMERA.initialTheta;
+    this.phi = CAMERA.initialPhi;
+    this.radius = CAMERA.initialRadius;
 
-    this.keys = {
-      w: false,
-      a: false,
-      s: false,
-      d: false,
-    };
+    // track mouse dragging
+    this.dragging = false;
+    this.prevX = 0;
+    this.prevY = 0;
+    this.touchPoint = null;
 
     this.camera = this._createCamera();
-    this.controls = this._createOrbitControls();
-
+    this._updateCameraPosition();
     this._bindEvents();
   }
 
@@ -30,194 +30,136 @@ export class Camera {
       0.1,
       100
     );
-
-    camera.position.set(
-      CAMERA.defaultPosition.x,
-      CAMERA.defaultPosition.y,
-      CAMERA.defaultPosition.z
-    );
-
-    camera.lookAt(
-      CAMERA.defaultTarget.x,
-      CAMERA.defaultTarget.y,
-      CAMERA.defaultTarget.z
-    );
-
     return camera;
   }
 
-  _createOrbitControls() {
-    const controls = new OrbitControls(
-      this.camera,
-      this.domElement
+  _updateCameraPosition() {
+    // calculate camera position based on spherical coordinates
+    this.camera.position.set(
+      this.radius * Math.sin(this.theta) * Math.sin(this.phi),
+      this.radius * Math.cos(this.phi),
+      this.radius * Math.cos(this.theta) * Math.sin(this.phi)
     );
-
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.08;
-
-    controls.enableRotate = true;
-    controls.enableZoom = true;
-    controls.enablePan = true;
-
-    controls.rotateSpeed = 0.8;
-    controls.zoomSpeed = 1.2;
-    controls.panSpeed = 0.7;
-
-    controls.minDistance = CAMERA.minDistance;
-    controls.maxDistance = CAMERA.maxDistance;
-
-    /*
-      5° ≈ شبه علوي
-      85° ≈ شبه جانبي
-
-      يمنع النزول تحت الطاولة
-    */
-    controls.minPolarAngle = THREE.MathUtils.degToRad(0);
-
-    controls.maxPolarAngle = THREE.MathUtils.degToRad(180);
-
-    /*
-      دوران كامل حول الطاولة
-    */
-    controls.minAzimuthAngle = -Infinity;
-    controls.maxAzimuthAngle = Infinity;
-
-    controls.target.set(0, 0, 0);
-
-    controls.update();
-
-    return controls;
+    
+    // look at a point on the table
+    this.camera.lookAt(
+      CAMERA.lookAtPoint.x,
+      CAMERA.lookAtPoint.y,
+      CAMERA.lookAtPoint.z
+    );
   }
 
   _bindEvents() {
-    this._onKeyDown = this._onKeyDown.bind(this);
-    this._onKeyUp = this._onKeyUp.bind(this);
+    // mouse events
+    this.domElement.addEventListener('mousedown', (e) => this._onMouseDown(e));
+    window.addEventListener('mouseup', (e) => this._onMouseUp(e));
+    window.addEventListener('mousemove', (e) => this._onMouseMove(e));
+    
+    // wheel events
+    this.domElement.addEventListener('wheel', (e) => this._onWheel(e), { passive: false });
+    
+    // touch events
+    this.domElement.addEventListener('touchstart', (e) => this._onTouchStart(e));
+    this.domElement.addEventListener('touchmove', (e) => this._onTouchMove(e), { passive: false });
+  }
 
-    window.addEventListener(
-      'keydown',
-      this._onKeyDown
+  _onMouseDown(e) {
+    this.dragging = true;
+    this.prevX = e.clientX;
+    this.prevY = e.clientY;
+  }
+
+  _onMouseUp() {
+    this.dragging = false;
+  }
+
+  _onMouseMove(e) {
+    if (!this.dragging) return;
+    
+    // update theta and phi based on mouse movement
+    this.theta -= (e.clientX - this.prevX) * CAMERA.rotationSpeed;
+    this.phi = Math.max(
+      CAMERA.minPhi,
+      Math.min(CAMERA.maxPhi, this.phi - (e.clientY - this.prevY) * CAMERA.tiltSpeed)
     );
+    
+    this.prevX = e.clientX;
+    this.prevY = e.clientY;
+    this._updateCameraPosition();
+  }
 
-    window.addEventListener(
-      'keyup',
-      this._onKeyUp
+  _onWheel(e) {
+    // zoom in/out when using the mouse wheel
+    this.radius = Math.max(
+      CAMERA.minRadius,
+      Math.min(CAMERA.maxRadius, this.radius + e.deltaY * CAMERA.zoomSpeed)
     );
+    e.preventDefault();
+    this._updateCameraPosition();
   }
 
-  _onKeyDown(event) {
-    const key = event.key.toLowerCase();
-
-    if (key in this.keys) {
-      this.keys[key] = true;
-    }
-
-    if (key === 'c') {
-      this.reset();
+  _onTouchStart(e) {
+    if (e.touches.length > 0) {
+      this.touchPoint = e.touches[0];
     }
   }
 
-  _onKeyUp(event) {
-    const key = event.key.toLowerCase();
-
-    if (key in this.keys) {
-      this.keys[key] = false;
-    }
+  _onTouchMove(e) {
+    if (!this.touchPoint) return;
+    
+    const touch = e.touches[0];
+    this.theta -= (touch.clientX - this.touchPoint.clientX) * CAMERA.rotationSpeed;
+    this.phi = Math.max(
+      CAMERA.minPhi,
+      Math.min(CAMERA.maxPhi, this.phi - (touch.clientY - this.touchPoint.clientY) * CAMERA.tiltSpeed)
+    );
+    
+    this.touchPoint = touch;
+    e.preventDefault();
+    this._updateCameraPosition();
   }
 
-  _move() {
-    const forward = new THREE.Vector3();
+  // Public methods to control the camera
+  rotateLeft() {
+    this.theta -= 0.38;
+    this._updateCameraPosition();
+  }
 
-    this.camera.getWorldDirection(forward);
+  rotateRight() {
+    this.theta += 0.38;
+    this._updateCameraPosition();
+  }
 
-    forward.y = 0;
-    forward.normalize();
-
-    const right = new THREE.Vector3()
-      .crossVectors(
-        forward,
-        new THREE.Vector3(0, 1, 0)
-      )
-      .normalize();
-
-    if (this.keys.w) {
-      const delta = forward
-        .clone()
-        .multiplyScalar(this.moveSpeed);
-
-      this.camera.position.add(delta);
-      this.controls.target.add(delta);
-    }
-
-    if (this.keys.s) {
-      const delta = forward
-        .clone()
-        .multiplyScalar(-this.moveSpeed);
-
-      this.camera.position.add(delta);
-      this.controls.target.add(delta);
-    }
-
-    if (this.keys.a) {
-      const delta = right
-        .clone()
-        .multiplyScalar(this.moveSpeed);
-
-      this.camera.position.add(delta);
-      this.controls.target.add(delta);
-    }
-
-    if (this.keys.d) {
-      const delta = right
-        .clone()
-        .multiplyScalar(-this.moveSpeed);
-
-      this.camera.position.add(delta);
-      this.controls.target.add(delta);
-    }
+  rotateTop() {
+    this.phi = 0.38;
+    this.radius = 8;
+    this._updateCameraPosition();
   }
 
   reset() {
-    this.camera.position.set(
-      CAMERA.defaultPosition.x,
-      CAMERA.defaultPosition.y,
-      CAMERA.defaultPosition.z
-    );
-
-    this.controls.target.set(
-      CAMERA.defaultTarget.x,
-      CAMERA.defaultTarget.y,
-      CAMERA.defaultTarget.z
-    );
-
-    this.controls.update();
+    this.theta = CAMERA.initialTheta;
+    this.phi = CAMERA.initialPhi;
+    this.radius = CAMERA.initialRadius;
+    this._updateCameraPosition();
   }
 
   resize(width, height) {
     this.width = width;
     this.height = height;
-
-    this.camera.aspect =
-      width / height;
-
+    this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
   }
 
   update() {
-    this._move();
-    this.controls.update();
+    // update camera position each frame
   }
 
   dispose() {
-    window.removeEventListener(
-      'keydown',
-      this._onKeyDown
-    );
-
-    window.removeEventListener(
-      'keyup',
-      this._onKeyUp
-    );
-
-    this.controls.dispose();
+    this.domElement.removeEventListener('mousedown', (e) => this._onMouseDown(e));
+    window.removeEventListener('mouseup', (e) => this._onMouseUp(e));
+    window.removeEventListener('mousemove', (e) => this._onMouseMove(e));
+    this.domElement.removeEventListener('wheel', (e) => this._onWheel(e));
+    this.domElement.removeEventListener('touchstart', (e) => this._onTouchStart(e));
+    this.domElement.removeEventListener('touchmove', (e) => this._onTouchMove(e));
   }
 }

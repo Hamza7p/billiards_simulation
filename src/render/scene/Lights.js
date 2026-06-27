@@ -1,29 +1,62 @@
 import * as THREE from 'three';
 
 export function createLights(scene) {
-  scene.add(new THREE.AmbientLight(0xffffff, 0.18));
+  // General ambient light
+  const ambientLight = new THREE.AmbientLight(0xfffaf0, 1.8); // أبيض دافئ قوي
+  scene.add(ambientLight);
 
-  const hemi = new THREE.HemisphereLight(0xf6f5ff, 0x0d1a1a, 0.35);
-  hemi.position.set(0, 3, 0);
-  scene.add(hemi);
+  // diffus light
+  const hemisphereLight = new THREE.HemisphereLight(
+    0xfff5e0, // sky color
+    0xffeedd, // earth color
+    0.8
+  );
+  scene.add(hemisphereLight);
 
-  const key = new THREE.DirectionalLight(0xfff7e0, 1.05);
-  key.position.set(2.5, -3.5, 4.5);
-  key.castShadow = true;
-  key.shadow.mapSize.set(2048, 2048);
-  key.shadow.camera.near = 0.5;
-  key.shadow.camera.far = 10;
-  key.shadow.camera.left = -4;
-  key.shadow.camera.right = 4;
-  key.shadow.camera.top = 4;
-  key.shadow.camera.bottom = -4;
-  scene.add(key);
+  // First direction light ( left side)
+  const overheadLight1 = new THREE.DirectionalLight(0xfffaea, 1.4);
+  overheadLight1.position.set(-1, 6, 0); 
+  overheadLight1.target.position.set(-1, 0, 0);
+  overheadLight1.castShadow = true; 
+  scene.add(overheadLight1);
+  scene.add(overheadLight1.target);
 
-  const fill = new THREE.DirectionalLight(0xc8e1ff, 0.35);
-  fill.position.set(-2.5, 2.5, 3);
-  scene.add(fill);
+  // Second direction light ( right side)
+  const overheadLight2 = new THREE.DirectionalLight(0xfffaea, 1.4);
+  overheadLight2.position.set(1, 6, 0);
+  overheadLight2.target.position.set(1, 0, 0);
+  overheadLight2.castShadow = true; 
+  scene.add(overheadLight2);
+  scene.add(overheadLight2.target);
 
-  const rim = new THREE.DirectionalLight(0xffffff, 0.18);
-  rim.position.set(0, 3, -1);
-  scene.add(rim);
+  // Front ligth for remove shadow
+  const fillLight = new THREE.DirectionalLight(0xfff8f0, 0.5);
+  fillLight.position.set(0, 2, 5);
+  fillLight.castShadow = true;
+  scene.add(fillLight);
 }
+
+
+
+// export function createLights(scene) {
+
+//   scene.add(new THREE.AmbientLight(0x0a1520, 2.4));
+
+//   var spotPositions = [[0,3.4,0,3.0], [-1.6,2.9,0,1.8], [1.6,2.9,0,1.8], [2, 4, -2, 0.3]];
+//   spotPositions.forEach(function(sp) {
+//     var spot = new THREE.SpotLight(0xd0deff, sp[3], 9, Math.PI/5.5, 0.55, 1.3);
+//     spot.position.set(sp[0], sp[1], sp[2]);
+//     spot.target.position.set(sp[0], 0, sp[2]);
+//     spot.castShadow = true;
+//     spot.shadow.mapSize.width = 512;
+//     spot.shadow.mapSize.height = 512;
+//     scene.add(spot);
+//     scene.add(spot.target);
+//   });
+
+//   var pl1 = new THREE.PointLight(0x2060b0, 0.55, 12);
+//   pl1.position.set(-3, 1.5, -2); scene.add(pl1);
+//   var pl2 = new THREE.PointLight(0x102030, 0.35, 10);
+//   pl2.position.set(3, 1.0, 2); scene.add(pl2);
+
+// }

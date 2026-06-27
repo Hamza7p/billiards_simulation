@@ -1,9 +1,9 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef,} from 'react';
 import * as THREE from 'three';
-import { COLORS, TABLE_SURFACE_Z, BALL,} from '@/config/constants.js';
+import { COLORS, TABLE, BALL,} from '@/config/constants.js';
 import { createLights } from './Lights.js';
-import { createTable } from '../objects/table/createTable.js';
-import { createBall } from '../objects/BallMesh.js';
+import { createTable } from '../objects/createTable.js';
+import { createBalls } from '../objects/createBalls.js';
 import { Camera } from './Camera.js';
 
 const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
@@ -26,7 +26,7 @@ const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
           controls.ballRadius;
       }
 
-      const z = TABLE_SURFACE_Z + controls.ballRadius;
+      const z = TABLE.surfaceZ + controls.ballRadius;
 
       ctx.ball.position.set(
         ballState.position.x,
@@ -104,9 +104,8 @@ const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
     createLights(scene);
     createTable(scene);
 
-    const ball = createBall(scene);
-
-    ball.position.z = TABLE_SURFACE_Z + BALL.radius;
+    const ballsData = createBalls(scene);
+    const ball = ballsData.cueBall;
 
     /*
      * Debug Contact Marker
@@ -136,6 +135,7 @@ const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
       renderer,
       camera,
       ball,
+      ballsData,
       contactMarker,
       currentBallRadius: BALL.radius,
     };
