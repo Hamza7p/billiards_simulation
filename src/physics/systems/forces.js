@@ -1,20 +1,22 @@
 import * as vec3 from '../math/Vector3';
 import { PHYSICS } from '@/config/constants';
+import { computeContactVelocity } from '@/physics/systems/helpers';
 
 export function applyForces(ball, surface, dt) {
   const g = surface.gravity;
   const R = ball.radius;
 
   // Jumping
-  if (ball.position.z > R) {
+  if (ball.position.z > 0) {
     ball.velocity.z -= g * dt;
     return;
   }
 
   // Side Spin
-  ball.angularVelocity.z *= 1 - surface.spinDamping * dt * 100;
+  ball.angularVelocity.z *= 1 - surface.spinDamping * dt * 30;
 
-  const vc = computeContactVelocity(ball);
+  const rc = vec3.create(0, 0, -ball.radius);
+  const vc = computeContactVelocity(ball, rc);
   const slipSpeed = vec3.length(vc);
   const direction = vec3.create();
 
@@ -34,17 +36,7 @@ export function applyForces(ball, surface, dt) {
   }
 }
 
-function computeContactVelocity(ball) {
-  const rc = vec3.create(0, 0, -ball.radius);
 
-  const wrc = vec3.create();
-  vec3.cross(wrc, ball.angularVelocity, rc);
-
-  const vc = vec3.create();
-  vec3.add(vc, ball.velocity, wrc);
-
-  return vc;
-}
 
 export function updateVelocity(ball, g, mu, direction, dt) {
   const acceleration = vec3.create();
@@ -76,6 +68,6 @@ export function settleBall(ball) {
   if (spin < PHYSICS.stopAngular)
     vec3.zero(ball.angularVelocity);
 
-  else if (Math.abs(ball.angularVelocity.z) < PHYSICS.stopAngular)
+  else if (Math.abs(ball.angularVelocity.z) < 1)
     ball.angularVelocity.z = 0;
 }

@@ -126,7 +126,7 @@ export function createTable(scene) {
   // 4. pockets
   TABLE_POCKETS.forEach(function (pk) {
     const px = pk[0];
-    const pz = pk[1];
+    const pz = -pk[1];
 
 
 

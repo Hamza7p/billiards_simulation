@@ -1,10 +1,11 @@
 import * as vec3 from '../math/Vector3';
+import { applyImpulse} from '@/physics/systems/helpers';
 
 /**
  * Compute cue strike impulse and contact offset from aim, elevation, and contact point.
  * @returns {{ impulse: object, r: object }}
  */
-export function computeStrike(ball, controls) {
+export function applyStrike(ball, controls) {
   const θ = controls.aimDeg * Math.PI / 180;
   const φ = controls.cueElevDeg * Math.PI / 180;
   const R = ball.radius;
@@ -13,7 +14,7 @@ export function computeStrike(ball, controls) {
   const d = vec3.create(
     Math.cos(φ) * Math.cos(θ),
     Math.cos(φ) * Math.sin(θ),
-    Math.sin(φ),
+    -Math.sin(φ),
   );
 
   const impulse = vec3.create();
@@ -46,5 +47,5 @@ export function computeStrike(ball, controls) {
   vec3.addScaled(r, r, side, a*R);
   vec3.addScaled(r, r, upCue, b*R);
 
-  return {impulse, r};
+  applyImpulse(ball, impulse, r);
 }

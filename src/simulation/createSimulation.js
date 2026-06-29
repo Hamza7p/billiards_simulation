@@ -2,8 +2,7 @@ import * as vec3 from '../physics/math/Vector3';
 import { Engine } from '../physics/core/Engine';
 import { Ball } from '../physics/bodies/Ball';
 import { SurfaceMaterial } from '../physics/bodies/Surface';
-import { applyImpulseAtContact } from '@/physics/systems/impulse';
-import { computeStrike } from '@/physics/systems/strike';
+import { applyStrike } from '@/physics/systems/strike';
 import { updateSimulation } from './updateSimulation';
 import { createControls } from '../physics/metrics/controls';
 import { START_POINT, PHYSICS } from '@/config/constants';
@@ -60,9 +59,7 @@ export function createSimulation() {
     simulationTime = 0;
     isRunning = true;
 
-    const { impulse, r } = computeStrike(cueBall, controls);
-
-    applyImpulseAtContact(cueBall, impulse, r);
+    applyStrike(cueBall, controls);
   }
 
   function reset() {

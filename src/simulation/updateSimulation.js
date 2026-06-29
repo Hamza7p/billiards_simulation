@@ -1,6 +1,6 @@
 import { integrateMotion, integrateOrientation } from '../physics/systems/motion';
 import { applyForces, settleBall } from '../physics/systems/forces';
-import { resolveTableCollisions } from '../physics/systems/collisions';
+import { resolveFloorCollision, resolveCushionCollision } from '../physics/systems/collisions';
 
 export function updateSimulation({ world, surface, dt }) {
   for (const ball of world.balls) {
@@ -12,7 +12,8 @@ export function updateSimulation({ world, surface, dt }) {
     integrateMotion(ball, dt);
     integrateOrientation(ball, dt);
 
-    resolveTableCollisions(ball);
+    resolveFloorCollision(ball);
+    resolveCushionCollision(ball);
 
     settleBall(ball);
   }

@@ -26,18 +26,16 @@ const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
           controls.ballRadius;
       }
 
-      const z = TABLE.surfaceZ + controls.ballRadius;
-
       ctx.ball.position.set(
         ballState.position.x,
-        ballState.position.y,
-        z,
+        ballState.position.z + TABLE.surfaceZ + controls.ballRadius,
+        -ballState.position.y,
       );
 
-      ctx.ball.rotation.set(
+      ctx.ball.quaternion.set(
         ballState.orientation.x,
-        ballState.orientation.y,
         ballState.orientation.z,
+        -ballState.orientation.y,
         ballState.orientation.w,
       );
     },
