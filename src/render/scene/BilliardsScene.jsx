@@ -16,15 +16,15 @@ const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
 
       if (!ctx) return;
 
-      if (ctx.currentBallRadius !== controls.ballRadius) {
-        const scale =
-          controls.ballRadius /
-          ctx.currentBallRadius;
+      // if (ctx.currentBallRadius !== controls.ballRadius) {
+      //   const scale =
+      //     controls.ballRadius /
+      //     ctx.currentBallRadius;
 
-        ctx.ball.scale.multiplyScalar(scale);
-        ctx.currentBallRadius =
-          controls.ballRadius;
-      }
+      //   ctx.ball.scale.multiplyScalar(scale);
+      //   ctx.currentBallRadius =
+      //     controls.ballRadius;
+      // }
 
       ctx.ball.position.set(
         ballState.position.x,
@@ -60,12 +60,6 @@ const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
     const scene = new THREE.Scene();
 
     scene.background = new THREE.Color(COLORS.background);
-
-    scene.fog = new THREE.Fog(
-      COLORS.background,
-      5,
-      12
-    );
 
     /*
      * Renderer

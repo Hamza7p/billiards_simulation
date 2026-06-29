@@ -1,202 +1,273 @@
 import * as THREE from 'three';
-import { TABLE, MATERIALS, TABLE_POCKETS } from '@/config/constants.js';
-import netImage from '@/assets/imgs/net.png';
+import { CLOTH_LENGTH, CLOTH_WIDTH, SURFACE_Y } from '@/config/constants.js';
+import netImageUrl  from '@/assets/imgs/net.png';
+import feltImageUrl from '@/assets/imgs/felt-cloth.png';
 
+// ─── Derived table geometry (all relative to cloth dimensions) ────────────
+const RAIL_WIDTH    = CLOTH_WIDTH * 0.0674;   // ≈ 0.12 m
+const RAIL_HEIGHT   = CLOTH_WIDTH * 0.0478;   // ≈ 0.085 m
+const BODY_HALF_H   = 0.07;                   // half-thickness of the slate body
+const POCKET_RADIUS = CLOTH_WIDTH * 0.0534;   // ≈ 0.095 m
+const POCKET_GAP    = POCKET_RADIUS * 1.6;    // cushion cutback around each pocket
+
+// Full outer dimensions (cloth + two rails each side)
+const OUTER_LENGTH  = CLOTH_LENGTH + RAIL_WIDTH * 2;
+const OUTER_WIDTH   = CLOTH_WIDTH  + RAIL_WIDTH * 2;
+
+// Cloth surface Y — balls roll exactly here (re-exported for physics)
+export const BALL_SURFACE_Y = SURFACE_Y;
+
+// ─── Pocket positions in world XZ (used here AND by physics/collision) ────
+const CP = RAIL_WIDTH * 0.5;                  // corner pocket offset from outer edge
+const SP = RAIL_WIDTH * 0.9;                  // side pocket offset from outer edge
+
+export const POCKET_POSITIONS = [
+  // [x, z]  — six pockets
+  [-CLOTH_LENGTH / 2 - CP,  -CLOTH_WIDTH / 2 - CP],   // back-left  corner
+  [-CLOTH_LENGTH / 2 - CP,   CLOTH_WIDTH / 2 + CP],   // front-left corner
+  [0,                        -CLOTH_WIDTH / 2 - SP],   // back  side
+  [0,                         CLOTH_WIDTH / 2 + SP],   // front side
+  [ CLOTH_LENGTH / 2 + CP,  -CLOTH_WIDTH / 2 - CP],   // back-right  corner
+  [ CLOTH_LENGTH / 2 + CP,   CLOTH_WIDTH / 2 + CP],   // front-right corner
+];
+
+// ─── Cushion (rail) segments — used by collision system ───────────────────
+// Each entry: { axis:'x'|'z', pos, from, to }
+// These are the INNER faces of the cushions (where the ball bounces).
+export const CUSHION_SEGMENTS = _buildCushionSegments();
+
+function _buildCushionSegments() {
+  const halfL = CLOTH_LENGTH / 2;
+  const halfW = CLOTH_WIDTH  / 2;
+  const g     = POCKET_GAP;
+  const cp    = CLOTH_LENGTH / 2 * 0; // corner x extent (pocket centre x)
+  const cpx   = halfL + CP;           // corner pocket x
+  const cpz   = halfW + CP;           // corner pocket z
+  const spz   = halfW + SP;           // side pocket z (not used for x-rails)
+
+  return [
+    // Long rails (parallel to X axis) — back (z = -halfW) and front (z = +halfW)
+    { axis:'z', z: -(halfW + RAIL_WIDTH/2), xFrom: -cpx + g, xTo: -g            },
+    { axis:'z', z: -(halfW + RAIL_WIDTH/2), xFrom:  g,       xTo:  cpx - g      },
+    { axis:'z', z:  (halfW + RAIL_WIDTH/2), xFrom: -cpx + g, xTo: -g            },
+    { axis:'z', z:  (halfW + RAIL_WIDTH/2), xFrom:  g,       xTo:  cpx - g      },
+    // Short rails (parallel to Z axis) — left (x = -halfL) and right (x = +halfL)
+    { axis:'x', x: -(halfL + RAIL_WIDTH/2), zFrom: -cpz + g, zTo: cpz - g       },
+    { axis:'x', x:  (halfL + RAIL_WIDTH/2), zFrom: -cpz + g, zTo: cpz - g       },
+  ];
+}
+
+// ─── Texture loader (shared) ──────────────────────────────────────────────
+const loader = new THREE.TextureLoader();
+
+function feltTexture(repeatX = 4, repeatY = 4) {
+  const t = loader.load(feltImageUrl);
+  t.colorSpace  = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(repeatX, repeatY);
+  return t;
+}
+
+// ─── Materials ────────────────────────────────────────────────────────────
+function buildMaterials() {
+  const cloth = new THREE.MeshStandardMaterial({
+    map:       feltTexture(6, 3),
+    color:     0x1254a0,
+    roughness: 0.95,
+    metalness: 0.0,
+  });
+
+  const rail = new THREE.MeshStandardMaterial({
+    map:       feltTexture(3, 1),
+    color:     0x1254a0,
+    roughness: 0.95,
+    metalness: 0.0,
+  });
+
+  const body = new THREE.MeshStandardMaterial({
+    color:     0x1e2228,
+    roughness: 0.2,
+    metalness: 0.8,
+  });
+
+  const trim = new THREE.MeshStandardMaterial({
+    color:     0x2a3040,
+    roughness: 0.4,
+    metalness: 0.6,
+  });
+
+  const ring = new THREE.MeshStandardMaterial({
+    color:     0x2a3040,
+    roughness: 0.3,
+    metalness: 0.8,
+  });
+
+  const pocketBlack = new THREE.MeshStandardMaterial({
+    color:    0x0a0a0a,
+    roughness: 0.9,
+  });
+
+  return { cloth, rail, body, trim, ring, pocketBlack };
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────
 export function createTable(scene) {
-  const T = new THREE.Group();
+  const mat = buildMaterials();
+  const T   = new THREE.Group();
 
-  // half of table dimensions
-  const TL = TABLE.length /2; 
-  const TW = TABLE.width /2;  
-  const TH = TABLE.thickness /2;
-
-  const RW = TABLE.railWidth;
-  const RH = TABLE.railHeight;
-  const PR = TABLE.pocketRadius;
-  const GAP = TABLE.pocketGap;
-  const BY = TABLE.surfaceY;
-
-  // materials
-  const matBody = new THREE.MeshStandardMaterial(MATERIALS.body);
-  const matCloth = new THREE.MeshStandardMaterial(MATERIALS.cloth);
-  const matRail = new THREE.MeshStandardMaterial(MATERIALS.rail);
-  const matBlack = new THREE.MeshStandardMaterial(MATERIALS.black);
-  const matRing = new THREE.MeshStandardMaterial(MATERIALS.ring);
-  const matCorner = new THREE.MeshStandardMaterial(MATERIALS.corner);
-  const matTrim = new THREE.MeshStandardMaterial(MATERIALS.trim);
-
-  // 1. table body
-  const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(TL * 2, TH * 2, TW * 2), matBody);
-  bodyMesh.receiveShadow = true;
-  bodyMesh.castShadow = true;
-  T.add(bodyMesh);
-
-  // bottom surface
-  const bot = new THREE.Mesh(new THREE.BoxGeometry(TL * 2 + 0.04, 0.02, TW * 2 + 0.04), matBody);
-  bot.position.y = -TH - 0.01;
-  T.add(bot);
-
-  // trim metal strip around the body
-  const trimH = 0.013;
-  [
-    [TL * 2 + 0.01, trimH, 0.015, 0, 0, -(TW + 0.008)],
-    [TL * 2 + 0.01, trimH, 0.015, 0, 0, TW + 0.008],
-    [0.015, trimH, TW * 2 + 0.01, -(TL + 0.008), 0, 0],
-    [0.015, trimH, TW * 2 + 0.01, TL + 0.008, 0, 0]
-  ].forEach(function (p) {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(p[0], p[1], p[2]), matTrim);
-    m.position.set(p[3], p[4], p[5]);
-    T.add(m);
-  });
-
-  // 2. cloth felt
-  const clothLength = (TL - RW) * 2;
-  const clothWidth = (TW - RW) * 2;
-  const clothMesh = new THREE.Mesh(new THREE.PlaneGeometry(clothLength, clothWidth), matCloth);
-  clothMesh.rotation.x = -Math.PI / 2;
-  // cloth y position
-  clothMesh.position.y = BY + 0.001;
-  clothMesh.receiveShadow = true;
-  T.add(clothMesh);
-
-  // 3. rails cushions — cut at each pocket
-  const railY = BY + RH / 2;
-
-  // ── The two long edges (X extension) ──
-  const zSides = [-(TW - RW / 2), TW - RW / 2];
-
-  zSides.forEach(function (rz) {
-    const xCornerL = -TL + RW * 0.6;
-    const xCornerR = TL - RW * 0.6;
-    const xMid = 0;
-
-    // west piece
-    const s1 = xCornerL + GAP;
-    const e1 = xMid - GAP;
-    const len1 = e1 - s1;
-    if (len1 > 0.01) {
-      const rm1 = new THREE.Mesh(new THREE.BoxGeometry(len1, RH, RW), matRail);
-      rm1.position.set(s1 + len1 / 2, railY, rz);
-      rm1.castShadow = true;
-      T.add(rm1);
-    }
-
-    // north piece
-    const s2 = xMid + GAP;
-    const e2 = xCornerR - GAP;
-    const len2 = e2 - s2;
-    if (len2 > 0.01) {
-      const rm2 = new THREE.Mesh(new THREE.BoxGeometry(len2, RH, RW), matRail);
-      rm2.position.set(s2 + len2 / 2, railY, rz);
-      rm2.castShadow = true;
-      T.add(rm2);
-    }
-  });
-
-  // ── The two short edges (Z extension) ──
-  const xSides = [-(TL - RW / 2), TL - RW / 2];
-
-  xSides.forEach(function (rx) {
-
-    const zCornerB = -TW + RW * 0.6;
-    const zCornerF = TW - RW * 0.6;
-    const sZ = zCornerB + GAP;
-    const eZ = zCornerF - GAP;
-    const lenZ = eZ - sZ;
-
-    if (lenZ > 0.01) {
-      const rm = new THREE.Mesh(new THREE.BoxGeometry(RW, RH, lenZ), matRail);
-      rm.position.set(rx, railY, sZ + lenZ / 2);
-      rm.castShadow = true;
-      T.add(rm);
-    }
-  });
-
-  // ──The four corner blocks ── black pieces above pockets
-  [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (s) {
-    const cx = s[0] * (TL - RW / 2);
-    const cz = s[1] * (TW - RW / 2);
-    const cb = new THREE.Mesh(new THREE.BoxGeometry(RW, RH, RW), matCorner);
-    cb.position.set(cx, railY, cz);
-    cb.rotation.y = Math.PI / 4;
-    cb.castShadow = true;
-    // T.add(cb);
-  });
-
-  // 4. pockets
-  TABLE_POCKETS.forEach(function (pk) {
-    const px = pk[0];
-    const pz = -pk[1];
-
-
-
-    // texture for pocket
-    const textureLoader = new THREE.TextureLoader();
-    const netTexture = textureLoader.load(netImage);
-
-    netTexture.colorSpace = THREE.SRGBColorSpace;
-    netTexture.wrapS = THREE.RepeatWrapping;
-    netTexture.wrapT = THREE.RepeatWrapping;
-    netTexture.repeat.set(2, 2);
-
-    const netMaterial = new THREE.MeshStandardMaterial({
-      map: netTexture,
-      roughness: 0.9,
-      metalness: 0.05,
-      polygonOffset: true,
-      polygonOffsetFactor: -1,
-    }); 
-
-    // net disc on the cloth surface
-    // for the sake of concavity, but it's very small
-    const topD = new THREE.Mesh(new THREE.CircleGeometry(PR * 1.08, 32), netMaterial);
-    const concaveDepth = 0.0015;
-    const positions = topD.geometry.attributes.position;
-    const radius = PR * 1.08;
-    for (let i = 0; i < positions.count; i += 1) {
-      const x = positions.getX(i);
-      const y = positions.getY(i);
-
-      const r = Math.sqrt(x * x + y * y);
-      const falloff = 1 - Math.min(r / radius, 1);
-      positions.setZ(i, -concaveDepth * falloff);
-    }
-    positions.needsUpdate = true;
-
-    topD.rotation.x = -Math.PI / 2;
-    topD.position.set(px, BY + 0.002, pz);
-    T.add(topD);
-
-
-
-    // internal leather ring
-    const rimG = new THREE.TorusGeometry(PR, 0.016, 10, 36);
-    const rim = new THREE.Mesh(rimG, matCorner);
-    rim.rotation.x = Math.PI / 2;
-    rim.position.set(px, BY + 0.003, pz);
-    // T.add(rim);
-
-    // external metal ring
-    const outerG = new THREE.TorusGeometry(PR + 0.018, 0.01, 8, 36);
-    const outer = new THREE.Mesh(outerG, matRing);
-    outer.rotation.x = Math.PI / 2;
-    outer.position.set(px, BY + 0.002, pz);
-    T.add(outer);
-
-    // deep conical cup
-    const cupG = new THREE.CylinderGeometry(PR * 0.95, PR * 0.4, 0.2, 28, 1, true);
-    const cup = new THREE.Mesh(cupG, matBlack);
-    cup.position.set(px, BY - 0.1, pz);
-    T.add(cup);
-
-    // bottom of the pit
-    const baseG = new THREE.CircleGeometry(PR * 0.38, 24);
-    const base = new THREE.Mesh(baseG, matBlack);
-    base.rotation.x = Math.PI / 2;
-    base.position.set(px, BY - 0.195, pz);
-    T.add(base);
-  });
+  _addBody(T, mat);
+  _addCloth(T, mat);
+  _addRails(T, mat);
+  _addPockets(T, mat);
 
   scene.add(T);
   return T;
+}
+
+// ── 1. Slate body ─────────────────────────────────────────────────────────
+function _addBody(T, mat) {
+  const bodyY = SURFACE_Y - BODY_HALF_H;
+
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(OUTER_LENGTH, BODY_HALF_H * 2, OUTER_WIDTH),
+    mat.body
+  );
+  body.position.y  = bodyY;
+  body.castShadow  = true;
+  body.receiveShadow = true;
+  T.add(body);
+
+  // thin metal trim strip around body perimeter
+  const TRIM_H = 0.013;
+  const TRIM_D = 0.015;
+  const trimY  = bodyY;
+  [
+    [OUTER_LENGTH + 0.01, TRIM_H, TRIM_D, 0,                   trimY, -(OUTER_WIDTH / 2 + 0.008)],
+    [OUTER_LENGTH + 0.01, TRIM_H, TRIM_D, 0,                   trimY,   OUTER_WIDTH / 2 + 0.008 ],
+    [TRIM_D, TRIM_H, OUTER_WIDTH + 0.01, -(OUTER_LENGTH / 2 + 0.008), trimY, 0                  ],
+    [TRIM_D, TRIM_H, OUTER_WIDTH + 0.01,   OUTER_LENGTH / 2 + 0.008,  trimY, 0                  ],
+  ].forEach(([w, h, d, x, y, z]) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat.trim);
+    m.position.set(x, y, z);
+    T.add(m);
+  });
+}
+
+// ── 2. Cloth surface ──────────────────────────────────────────────────────
+function _addCloth(T, mat) {
+  const cloth = new THREE.Mesh(
+    new THREE.PlaneGeometry(CLOTH_LENGTH, CLOTH_WIDTH),
+    mat.cloth
+  );
+  cloth.rotation.x    = -Math.PI / 2;
+  cloth.position.y    = SURFACE_Y + 0.001;
+  cloth.receiveShadow = true;
+  T.add(cloth);
+}
+
+// ── 3. Rails / cushions ───────────────────────────────────────────────────
+function _addRails(T, mat) {
+  const railY   = SURFACE_Y + RAIL_HEIGHT / 2;
+  const halfL   = CLOTH_LENGTH / 2;
+  const halfW   = CLOTH_WIDTH  / 2;
+  const railCX  = RAIL_WIDTH / 2;   // rail centre offset from cloth edge
+  const g       = POCKET_GAP;
+  const cornerX = halfL + RAIL_WIDTH * 0.1;   // x of corner pocket centre
+  const cornerZ = halfW + RAIL_WIDTH * 0.1;
+
+  // Long rails (Z sides) — each split into two segments by the side pocket
+  [-1, 1].forEach(side => {
+    const rz = side * (halfW + railCX);
+
+    [ [-cornerX + g, -g],
+      [           g,  cornerX - g] ].forEach(([from, to]) => {
+      const len = to - from;
+      if (len < 0.01) return;
+      const seg = new THREE.Mesh(
+        new THREE.BoxGeometry(len, RAIL_HEIGHT, RAIL_WIDTH),
+        mat.rail
+      );
+      seg.position.set(from + len / 2, railY, rz);
+      seg.castShadow = true;
+      T.add(seg);
+    });
+  });
+
+  // Short rails (X sides) — one segment each, cut at corners
+  [-1, 1].forEach(side => {
+    const rx  = side * (halfL + railCX);
+    const from = -cornerZ + g;
+    const to   =  cornerZ - g;
+    const len  = to - from;
+    if (len < 0.01) return;
+    const seg = new THREE.Mesh(
+      new THREE.BoxGeometry(RAIL_WIDTH, RAIL_HEIGHT, len),
+      mat.rail
+    );
+    seg.position.set(rx, railY, from + len / 2);
+    seg.castShadow = true;
+    T.add(seg);
+  });
+}
+
+// ── 4. Pockets ────────────────────────────────────────────────────────────
+function _addPockets(T, mat) {
+  const netTexture = loader.load(netImageUrl);
+  netTexture.colorSpace = THREE.SRGBColorSpace;
+  netTexture.wrapS = netTexture.wrapT = THREE.RepeatWrapping;
+  netTexture.repeat.set(2, 2);
+
+  const matNet = new THREE.MeshStandardMaterial({
+    map:           netTexture,
+    roughness:     0.9,
+    metalness:     0.05,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+  });
+
+  POCKET_POSITIONS.forEach(([px, pz]) => {
+    // Concave net disc
+    const discGeo = new THREE.CircleGeometry(POCKET_RADIUS * 1.08, 32);
+    _applyConcavity(discGeo, POCKET_RADIUS * 1.08, 0.0015);
+    const disc = new THREE.Mesh(discGeo, matNet);
+    disc.rotation.x = -Math.PI / 2;
+    disc.position.set(px, SURFACE_Y + 0.002, pz);
+    T.add(disc);
+
+    // Metal outer ring
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(POCKET_RADIUS + 0.018, 0.01, 8, 36),
+      mat.ring
+    );
+    ring.rotation.x = Math.PI / 2;
+    ring.position.set(px, SURFACE_Y + 0.002, pz);
+    T.add(ring);
+
+    // Conical cup into the body
+    const cup = new THREE.Mesh(
+      new THREE.CylinderGeometry(POCKET_RADIUS * 0.95, POCKET_RADIUS * 0.4, 0.2, 28, 1, true),
+      mat.pocketBlack
+    );
+    cup.position.set(px, SURFACE_Y - 0.1, pz);
+    T.add(cup);
+
+    // Pit floor
+    const floor = new THREE.Mesh(
+      new THREE.CircleGeometry(POCKET_RADIUS * 0.38, 24),
+      mat.pocketBlack
+    );
+    floor.rotation.x = Math.PI / 2;
+    floor.position.set(px, SURFACE_Y - 0.195, pz);
+    T.add(floor);
+  });
+}
+
+function _applyConcavity(geometry, radius, depth) {
+  const pos = geometry.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const r       = Math.hypot(pos.getX(i), pos.getY(i));
+    const falloff = 1 - Math.min(r / radius, 1);
+    pos.setZ(i, -depth * falloff);
+  }
+  pos.needsUpdate = true;
 }

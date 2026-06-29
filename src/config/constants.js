@@ -49,19 +49,8 @@ export const COLORS = {
   highlight: 0xf8f1d4,
 };
 
-// Material constants
-export const MATERIALS = {
-  body: { color: 0x1e2228, roughness: 0.20, metalness: 0.80 },
-  cloth: { color: 0x1254a0, roughness: 0.88, metalness: 0.0 },
-  rail: { color: 0x1254a0, roughness: 0.78, metalness: 0.02 },
-  bumper: { color: 0x0b3460, roughness: 0.90, metalness: 0.0 },
-  black: { color: 0x050608, roughness: 0.95, metalness: 0.05 },
-  ring: { color: 0x2a3040, roughness: 0.22, metalness: 0.88 },
-  corner: { color: 0x0d1520, roughness: 0.90, metalness: 0.02 },
-  trim: { color: 0x353c46, roughness: 0.18, metalness: 0.92 },
-  ball: { roughness: 0.06, metalness: 0.08 },
-};
 
+// TODO remove
 export const TABLE = {
   
   // Snooker table dimensions
@@ -81,18 +70,6 @@ export const TABLE = {
   
 };
 
-const CORNER_POCKET_OFFSET = TABLE.railWidth * 0.6;
-const SIDE_POCKET_OFFSET = TABLE.railWidth * 0.1;
-
-// table pockets [x, z]
-export const TABLE_POCKETS = [
-  [-TABLE.length/2 + CORNER_POCKET_OFFSET,  -TABLE.width/2 + CORNER_POCKET_OFFSET],
-  [-TABLE.length/2 + CORNER_POCKET_OFFSET,   TABLE.width/2 - CORNER_POCKET_OFFSET],
-  [0,             -TABLE.width/2 + SIDE_POCKET_OFFSET],
-  [0,              TABLE.width/2 - SIDE_POCKET_OFFSET],
-  [ TABLE.length/2 - CORNER_POCKET_OFFSET, -TABLE.width/2 + CORNER_POCKET_OFFSET],
-  [ TABLE.length/2 - CORNER_POCKET_OFFSET,  TABLE.width/2 - CORNER_POCKET_OFFSET],
-];
 
 export const CAMERA = {
   // circle system: (theta, phi, r)
@@ -126,16 +103,13 @@ export const CAMERA = {
   fov: 44,
 };
 
-export const SIZES = {
-  tableWidth: 2.54,
-  tableHeight: 1.27,
-  railWidth: 0.07,
-  tableThickness: 0.12,
-  cushionHeight: 0.035,
-  pocketRadius: 0.06,
-  pocketLipRadius: 0.08,
-  view: 1.5,
-  perspectiveFov: 44,
-  tableEdgeRadius: 0.03,
-};
 
+// ─── Snooker Table — World-standard play dimensions ───────────────────────
+// Source: World Snooker / WPBSA spec
+// These are the CLOTH (ball-rolling) dimensions — everything else derives from them.
+
+export const CLOTH_LENGTH = 3.569;   // metres, long axis  (X)
+export const CLOTH_WIDTH  = 1.778;   // metres, short axis (Z)
+
+// Y of the cloth surface in world space (balls roll at this height)
+export const SURFACE_Y    = 0.855;
