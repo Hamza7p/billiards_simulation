@@ -21,8 +21,15 @@ export default function App() {
     simRef.current = sim;
     sim.engine.start();
 
+
     function renderLoop() {
-      sceneRef.current?.sync(sim.cueBall, sim.controls);
+      
+      const states = sim.world.balls.map(b => ({
+        position:    b.position,
+        orientation: b.orientation,
+      }));
+
+      sceneRef.current?.sync(states, sim.controls);
 
       setControls({ ...sim.controls });
       setMetrics(sim.getMetrics());

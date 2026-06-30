@@ -1,6 +1,6 @@
 import * as vec3 from '../math/Vector3';
 import calculateInertia from './inertia';
-import { BALL, START_POINT, SURFACE } from '@/config/constants';
+import { BALL, START_POINT, SURFACE } from '@/global/constants';
 
 const contactRadius = vec3.create();
 const omegaCrossR = vec3.create();

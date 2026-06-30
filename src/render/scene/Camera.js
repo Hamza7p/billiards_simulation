@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CAMERA } from '@/config/constants.js';
+import { CAMERA } from '@/global/constants.js';
 
 export class Camera {
   constructor(width, height, domElement) {

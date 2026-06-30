@@ -1,5 +1,5 @@
 import * as vec3 from '../math/Vector3';
-import { PHYSICS } from '@/config/constants';
+import { PHYSICS } from '@/global/constants';
 import { computeContactVelocity } from '@/physics/systems/helpers';
 
 export function applyForces(ball, surface, dt) {

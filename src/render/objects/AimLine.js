@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { COLORS } from '@/config/constants.js';
+import { COLORS } from '@/global/constants.js';
 
 export function createAimLine(scene) {
   const dir = new THREE.Vector3(1, 0, 0); // Default direction

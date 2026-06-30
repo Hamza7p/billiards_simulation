@@ -1,14 +1,14 @@
 import * as THREE from 'three';
-import { CLOTH_LENGTH, CLOTH_WIDTH, SURFACE_Y } from '@/config/constants.js';
+import { CLOTH_LENGTH, CLOTH_WIDTH, SURFACE_Y } from '@/global/constants.js';
 import netImageUrl  from '@/assets/imgs/net.png';
-import feltImageUrl from '@/assets/imgs/felt-cloth.png';
+import feltImageUrl from '@/assets/imgs/felt-cloth-light.png';
 
 // ─── Derived table geometry (all relative to cloth dimensions) ────────────
-const RAIL_WIDTH    = CLOTH_WIDTH * 0.0674;   // ≈ 0.12 m
+export const RAIL_WIDTH    = CLOTH_WIDTH * 0.0674;   // ≈ 0.12 m
 const RAIL_HEIGHT   = CLOTH_WIDTH * 0.0478;   // ≈ 0.085 m
 const BODY_HALF_H   = 0.07;                   // half-thickness of the slate body
 const POCKET_RADIUS = CLOTH_WIDTH * 0.0534;   // ≈ 0.095 m
-const POCKET_GAP    = POCKET_RADIUS * 1.6;    // cushion cutback around each pocket
+export const POCKET_GAP    = POCKET_RADIUS * 1.6;    // cushion cutback around each pocket
 
 // Full outer dimensions (cloth + two rails each side)
 const OUTER_LENGTH  = CLOTH_LENGTH + RAIL_WIDTH * 2;
@@ -172,8 +172,8 @@ function _addRails(T, mat) {
   const halfW   = CLOTH_WIDTH  / 2;
   const railCX  = RAIL_WIDTH / 2;   // rail centre offset from cloth edge
   const g       = POCKET_GAP;
-  const cornerX = halfL + RAIL_WIDTH * 0.1;   // x of corner pocket centre
-  const cornerZ = halfW + RAIL_WIDTH * 0.1;
+  const cornerX = halfL + RAIL_WIDTH * 0.3;    // x of corner pocket centre
+  const cornerZ = halfW + RAIL_WIDTH * 0.3;
 
   // Long rails (Z sides) — each split into two segments by the side pocket
   [-1, 1].forEach(side => {

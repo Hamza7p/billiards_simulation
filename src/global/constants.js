@@ -1,33 +1,10 @@
 
-export const BALL = {
-  mass: 0.17,
-  radius: 0.028575,
-};
-
-export const BALL_COLORS = [
-  0xfefefe, 0xf5a800, 0xcc2200, 0x7030a0, 0xff6600,
-  0x1a6620, 0x8b2200, 0x111111, 0xf5e600, 0x2266cc,
-  0x993355, 0xcc5500, 0x1a6620, 0x4422aa, 0xaa1111,
-];
 
 export const SURFACE = {
   gravity: 9.81,
   muSliding: 0.2,
   muRolling: 0.01,
   spinDamping: 0.02,
-};
-
-export const PHYSICS = {
-  slipThreshold: 0.1,
-  stopSpeed: 0.001,
-  stopAngular: 0.1,
-  railRestitution: 0.75,
-};
-
-export const START_POINT = {
-  x: 0,
-  y: 0,
-  z: 0,
 };
 
 export const COLORS = {
@@ -113,3 +90,24 @@ export const CLOTH_WIDTH  = 1.778;   // metres, short axis (Z)
 
 // Y of the cloth surface in world space (balls roll at this height)
 export const SURFACE_Y    = 0.855;
+
+// ─── Ball ─────────────────────────────────────────────────────────────────
+export const BALL = {
+  radius: 0.028575,   // 57.15 mm diameter — WPA standard
+  mass:   0.17,       // 170 g
+};
+
+// ─── 8-ball rack positions (physics 2D space: x forward, y sideways) ──────
+// Foot spot on a 9ft table ≈ +0.635 m from centre along long axis
+export const RACK_FOOT_SPOT = { x: 0.635, y: 0 };
+export const CUE_BALL_START  = { x: -0.635, y: 0 };   // head spot
+export const START_POINT    = {  x: -0.635, y: 0, z: 0 };
+
+// ─── Physics stop thresholds ──────────────────────────────────────────────
+export const PHYSICS = {
+  slipThreshold: 0.1,
+  stopSpeed: 0.001,
+  stopAngular: 0.1,
+  railRestitution: 0.65,
+  ballRestitution: 0.95,
+};

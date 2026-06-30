@@ -1,4 +1,4 @@
-import { BALL, SURFACE } from '@/config/constants';
+import { BALL, SURFACE } from '@/global/constants';
 
 export function createControls() {
   return {

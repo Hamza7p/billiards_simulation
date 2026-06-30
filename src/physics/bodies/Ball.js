@@ -1,5 +1,5 @@
 
-import { BALL, START_POINT } from '@/config/constants.js';
+import { BALL, START_POINT } from '@/global/constants.js';
 import * as vec3 from '../math/Vector3.js';
 import { Quaternion } from 'three';
 

@@ -1,4 +1,4 @@
-import { SURFACE } from "@/config/constants";
+import { SURFACE } from "@/global/constants";
 
 /** options
  * @param {object} [opts]

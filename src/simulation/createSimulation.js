@@ -1,81 +1,105 @@
 import * as vec3 from '../physics/math/Vector3';
-import { Engine } from '../physics/core/Engine';
-import { Ball } from '../physics/bodies/Ball';
+import { Engine }          from '../physics/core/Engine';
+import { Ball }            from '../physics/bodies/Ball';
 import { SurfaceMaterial } from '../physics/bodies/Surface';
-import { applyStrike } from '@/physics/systems/strike';
+import { applyStrike }     from '@/physics/systems/strike';
 import { updateSimulation } from './updateSimulation';
-import { createControls } from '../physics/metrics/controls';
-import { START_POINT, PHYSICS } from '@/config/constants';
+import { createControls }  from '../physics/metrics/controls';
 import { calculateMetrics } from '@/physics/metrics/metrics';
+import { BALL, START_POINT, PHYSICS, RACK_FOOT_SPOT } from '@/global/constants';
 import { Quaternion } from 'three';
+import { RACK_ORDER, calcRackPositions } from '@/global/ballsTriangle';
 
+
+// ─── Factory ──────────────────────────────────────────────────────────────
 export function createSimulation() {
   const controls = createControls();
   let simulationTime = 0;
   let isRunning = false;
 
+  // cue ball
   const cueBall = Ball({
-    radius: controls.ballRadius,
-    mass: controls.ballMass,
+    radius:   controls.ballRadius,
+    mass:     controls.ballMass,
+    position: { x: START_POINT.x, y: START_POINT.y, z: START_POINT.z },
   });
 
+  // rack balls
+  const rackPositions = calcRackPositions();
+  const rackBalls = RACK_ORDER.map((num, i) =>
+    Ball({
+      radius:   BALL.radius,
+      mass:     BALL.mass,
+      position: { x: rackPositions[i].x, y: rackPositions[i].y, z: 0 },
+    })
+  );
+
   const world = {
-    balls: [cueBall],
+    balls: [cueBall, ...rackBalls],   // index 0 = cueBall always
   };
 
   const surface = SurfaceMaterial({
-    gravity: controls.gravity,
-    muSliding: controls.muSliding,
-    muRolling: controls.muRolling,
+    gravity:     controls.gravity,
+    muSliding:   controls.muSliding,
+    muRolling:   controls.muRolling,
     spinDamping: controls.spinDamping,
   });
 
+  // ── Engine tick ───────────────────────────────────────────────────────
   const engine = new Engine((dt) => {
-    cueBall.mass = controls.ballMass;
+    // sync live controls → physics properties
+    cueBall.mass   = controls.ballMass;
     cueBall.radius = controls.ballRadius;
 
-    surface.muSliding = controls.muSliding;
-    surface.muRolling = controls.muRolling;
+    surface.muSliding   = controls.muSliding;
+    surface.muRolling   = controls.muRolling;
     surface.spinDamping = controls.spinDamping;
-    surface.gravity = controls.gravity;
+    surface.gravity     = controls.gravity;
 
-    if (isRunning) {
-      simulationTime += dt;
-    }
+    if (isRunning) simulationTime += dt;
 
     updateSimulation({ world, surface, dt });
 
+    // stop check — only based on cue ball
     const speed = Math.hypot(cueBall.velocity.x, cueBall.velocity.y);
-    const spin = vec3.length(cueBall.angularVelocity);
+    const spin  = vec3.length(cueBall.angularVelocity);
 
-    if (speed < PHYSICS.stopSpeed && spin < PHYSICS.stopAngular && isRunning) {
-      vec3.zero(cueBall.velocity);
-      vec3.zero(cueBall.angularVelocity);
+    if (isRunning && speed < PHYSICS.stopSpeed && spin < PHYSICS.stopAngular) {
+      world.balls.forEach(b => {
+        if (b.pocketed || b.jumpedOff) return;
+        vec3.zero(b.velocity);
+        vec3.zero(b.angularVelocity);
+      });
       isRunning = false;
     }
   });
 
+  // ── Actions ───────────────────────────────────────────────────────────
   function shoot() {
+    if (cueBall.pocketed) return;
     simulationTime = 0;
     isRunning = true;
-
     applyStrike(cueBall, controls);
   }
 
   function reset() {
-    vec3.set(
-      cueBall.position,
-      START_POINT.x,
-      START_POINT.y,
-      START_POINT.z
-    );
+    world.balls.forEach((ball, i) => {
+      ball.pocketed   = false;
+      ball.jumpedOff  = false;
+      ball.distanceTraveled = 0;
+      ball.orientation = new Quaternion();
+      vec3.zero(ball.velocity);
+      vec3.zero(ball.angularVelocity);
+    });
 
-    vec3.zero(cueBall.velocity);
-    vec3.zero(cueBall.angularVelocity);
-    // vec3.zero(cueBall.orientation);
-    cueBall.orientation = new Quaternion();
+    // cue ball → head spot
+    vec3.set(cueBall.position, START_POINT.x, START_POINT.y, 0);
 
-    cueBall.distanceTraveled = 0;
+    // rack balls → original positions
+    rackPositions.forEach((pos, i) => {
+      vec3.set(rackBalls[i].position, pos.x, pos.y, 0);
+    });
+
     simulationTime = 0;
     isRunning = false;
   }
@@ -88,11 +112,6 @@ export function createSimulation() {
     shoot,
     reset,
     getSimulationTime: () => simulationTime,
-    getMetrics: () =>
-      calculateMetrics({
-        ball: cueBall,
-        surface,
-        simulationTime,
-      }),
+    getMetrics: () => calculateMetrics({ ball: cueBall, surface, simulationTime }),
   };
 }

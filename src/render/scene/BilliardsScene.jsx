@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef,} from 'react';
 import * as THREE from 'three';
-import { COLORS, TABLE, BALL,} from '@/config/constants.js';
+import { COLORS, TABLE, BALL, SURFACE_Y,} from '@/global/constants.js';
 import { createLights } from './Lights.js';
 import { createTable } from '../objects/createTable.js';
 import { createBalls } from '../objects/createBalls.js';
@@ -11,33 +11,30 @@ const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
   const contextRef = useRef(null);
 
   useImperativeHandle(ref, () => ({
-    sync(ballState, controls) {
+   
+    sync(allBallStates, controls) {
       const ctx = contextRef.current;
-
       if (!ctx) return;
 
-      // if (ctx.currentBallRadius !== controls.ballRadius) {
-      //   const scale =
-      //     controls.ballRadius /
-      //     ctx.currentBallRadius;
+      // allBallStates = [ {position, orientation}, ... ]
+      // index 0 = cue ball, يطابق ctx.ballsData.all
+      allBallStates.forEach((state, i) => {
+        const mesh = ctx.ballsData.all[i];
+        if (!mesh || !state) return;
 
-      //   ctx.ball.scale.multiplyScalar(scale);
-      //   ctx.currentBallRadius =
-      //     controls.ballRadius;
-      // }
+        mesh.position.set(
+          state.position.x,
+          SURFACE_Y + BALL.radius + 0.0002, // TODO jumps
+          -state.position.y,
+        );
 
-      ctx.ball.position.set(
-        ballState.position.x,
-        ballState.position.z + TABLE.surfaceZ + controls.ballRadius,
-        -ballState.position.y,
-      );
-
-      ctx.ball.quaternion.set(
-        ballState.orientation.x,
-        ballState.orientation.z,
-        -ballState.orientation.y,
-        ballState.orientation.w,
-      );
+        mesh.quaternion.set(
+          state.orientation.x,
+          state.orientation.z,
+          -state.orientation.y,
+          state.orientation.w,
+        );
+      });
     },
 
     resetCamera() {
@@ -58,7 +55,6 @@ const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
      * Scene
      */
     const scene = new THREE.Scene();
-
     scene.background = new THREE.Color(COLORS.background);
 
     /*

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { COLORS, TABLE_SURFACE_Z } from '@/config/constants.js';
+import { COLORS, TABLE_SURFACE_Z } from '@/global/constants.js';
 
 export function createCue(scene) {
   const group = new THREE.Group();
