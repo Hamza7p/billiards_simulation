@@ -20,3 +20,24 @@ export function computeContactVelocity(ball, rc) {
 
   return vc;
 }
+
+export function mergeImpulse(jn, n, jt, t) {
+  const j = vec3.create();
+  vec3.scale(j, n, jn);
+  vec3.addScaled(j, j, t, jt);
+  return j;
+}
+
+export function computeContactDirections(vc, n) {
+  const vn = vec3.create();
+  const vt = vec3.create();
+  const t = vec3.create();
+
+  vec3.scale(vn, n, vec3.dot(vc, n));
+  vec3.sub(vt, vc, vn);
+
+  vec3.normalize(t, vt);
+  vec3.negate(t, t);
+
+  return { vt, t };
+}
