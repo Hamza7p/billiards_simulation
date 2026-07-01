@@ -24,7 +24,7 @@ const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
 
         mesh.position.set(
           state.position.x,
-          SURFACE_Y + BALL.radius + 0.0002, // TODO jumps
+          state.position.z + SURFACE_Y + BALL.radius + 0.0002, // TODO jumps
           -state.position.y,
         );
 

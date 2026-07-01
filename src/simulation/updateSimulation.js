@@ -1,10 +1,10 @@
 import { integrateMotion, integrateOrientation } from '../physics/systems/motion';
 import { applyForces, settleBall }               from '../physics/systems/forces';
+import { resolveBallCollisions } from '@/physics/systems/ballCollisions';
 import {
   resolveFloorCollision,
   resolveCushionCollision,
   resolvePocketCapture,
-  resolveBallCollisions,
   resolveJumpedBall,
 } from '../physics/systems/collisions';
 
