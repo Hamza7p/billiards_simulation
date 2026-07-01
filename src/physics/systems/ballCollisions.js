@@ -41,11 +41,11 @@ function _resolvePair(ball1, ball2) {
 
   const { vt, t } = computeContactDirections(vc, n);
 
-  const jn = -0.5 * m * (1 + e) * vec3.dot(vc, n);
+  const jn = 0.5 * m * (1 + e) * vec3.dot(vc, n);
   const jt = Math.min(Math.abs(jn) * mu, 1/7 * m * vec3.length(vt));
-  const j1 = mergeImpulse(jn, n, jt, t);
-  const j2 = mergeImpulse(-jn, n, -jt, t);
-
+  const j1 = mergeImpulse(-jn, n, -jt, t);
+  const j2 = mergeImpulse(jn, n, jt, t);
+  
   applyImpulse(ball1, j1, rc1);
   applyImpulse(ball2, j2, rc2);
 }

@@ -46,7 +46,7 @@ export function resolveCushionCollision(ball, restitution = PHYSICS.railRestitut
   const { vt, t } = computeContactDirections(vc, n);
 
   const jn = -m * (1 + e) * vec3.dot(vc, n);
-  const jt = Math.min(Math.abs(jn) * mu, 2/7 * m * vec3.length(vt));
+  const jt = -Math.min(Math.abs(jn) * mu, 2/7 * m * vec3.length(vt));
   const j = mergeImpulse(jn, n, jt, t);
 
   applyImpulse(ball, j, rc);
