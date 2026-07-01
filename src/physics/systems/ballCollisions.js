@@ -22,7 +22,7 @@ function _resolvePair(ball1, ball2) {
   const R = ball1.radius;
   const m = ball1.mass;
   const e = 0.93;
-  const mu = 0.1;
+  const mu = 0.2;
 
   const n = vec3.create();
   if (!_detectBallsContact(ball1, ball2, n)) return;
@@ -42,7 +42,7 @@ function _resolvePair(ball1, ball2) {
   const { vt, t } = computeContactDirections(vc, n);
 
   const jn = -0.5 * m * (1 + e) * vec3.dot(vc, n);
-  const jt = Math.abs(jn) * mu;
+  const jt = Math.min(Math.abs(jn) * mu, 1/7 * m * vec3.length(vt));
   const j1 = mergeImpulse(jn, n, jt, t);
   const j2 = mergeImpulse(-jn, n, -jt, t);
 
