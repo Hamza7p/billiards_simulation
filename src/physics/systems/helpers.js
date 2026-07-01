@@ -37,7 +37,6 @@ export function computeContactDirections(vc, n) {
   vec3.sub(vt, vc, vn);
 
   vec3.normalize(t, vt);
-  vec3.negate(t, t);
 
   return { vt, t };
 }
