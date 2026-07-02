@@ -85,7 +85,6 @@ export function createSimulation() {
       ball.pocketed   = false;
       ball.jumpedOff  = false;
       ball.distanceTraveled = 0;
-      ball.orientation = new Quaternion();
       vec3.zero(ball.velocity);
       vec3.zero(ball.angularVelocity);
     });
