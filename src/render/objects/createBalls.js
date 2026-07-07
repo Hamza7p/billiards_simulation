@@ -3,9 +3,6 @@ import { BALL, SURFACE_Y, CUE_BALL_START } from '@/global/constants.js';
 import { calcRackPositions, RACK_ORDER } from '@/global/ballsTriangle';
 
 
-const BALL_Y = SURFACE_Y + BALL.radius + 0.0002; // resting height in world Y
-
-
 // ─── Shared texture loader ─────────────────────────────────────────────────
 const loader = new THREE.TextureLoader();
 
@@ -14,7 +11,7 @@ function loadBallTexture(num) {
   t.colorSpace = THREE.SRGBColorSpace;
   t.wrapS      = THREE.RepeatWrapping;
   t.wrapT      = THREE.ClampToEdgeWrapping;
-  t.repeat.set(2, 1);
+  t.repeat.set(1, 1);
   return t;
 }
 
@@ -51,8 +48,9 @@ function cueBallMaterial() {
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────
-export function createBalls(scene) {
-  const geo = new THREE.SphereGeometry(BALL.radius, 32, 32);
+export function createBalls(scene, radius = BALL.radius) {
+  const geo = new THREE.SphereGeometry(radius, 32, 32);
+  const ballY = SURFACE_Y + radius + 0.0002;
 
   // ── Rack balls ────────────────────────────────────────────────────────
   const positions = calcRackPositions();
@@ -60,9 +58,9 @@ export function createBalls(scene) {
 
   RACK_ORDER.forEach((num, i) => {
     const mesh = new THREE.Mesh(geo, ballMaterial(num));
-    mesh.position.set(positions[i].x, BALL_Y, positions[i].y);
+    mesh.position.set(positions[i].x, ballY, positions[i].y);
     mesh.castShadow    = true;
-    mesh.receiveShadow = false;
+    mesh.receiveShadow = true;
     mesh.userData.ballNumber = num;
     mesh.userData.isSolid    = num <= 7;
     mesh.userData.isStripe   = num >= 9 && num <= 15;
@@ -73,9 +71,9 @@ export function createBalls(scene) {
 
   // ── Cue ball ──────────────────────────────────────────────────────────
   const cueBall = new THREE.Mesh(geo, cueBallMaterial());
-  cueBall.position.set(CUE_BALL_START.x, BALL_Y, CUE_BALL_START.y);
+  cueBall.position.set(CUE_BALL_START.x, ballY, CUE_BALL_START.y);
   cueBall.castShadow    = true;
-  cueBall.receiveShadow = false;
+  cueBall.receiveShadow = true;
   cueBall.userData.ballNumber = 0;
   cueBall.userData.isCueBall  = true;
   scene.add(cueBall);

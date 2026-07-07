@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-
 import BilliardsScene from '../render/scene/BilliardsScene';
 import SimulationPanel from '../ui/panels/SimulationPanel';
 import { createSimulation } from '../simulation/createSimulation';
 import { createControls } from '../physics/metrics/controls';
 import { initialMetrics } from '@/physics/metrics/metrics';
 import { ArrowLeft } from "@deemlol/next-icons"
+import CueHUD from '@/ui/components/Cue/CueHUD';
 
 export default function App() {
   const sceneRef = useRef(null);
@@ -15,12 +15,13 @@ export default function App() {
   const [controls, setControls] = useState(createControls());
   const [metrics, setMetrics] = useState(initialMetrics());
   const [slidingOpen, setSlidingOpen] = useState(false);
+  const [isMoving, setIsMoving] = useState(false);
+
 
   useEffect(() => {
     const sim = createSimulation();
     simRef.current = sim;
     sim.engine.start();
-
 
     function renderLoop() {
       
@@ -29,7 +30,12 @@ export default function App() {
         orientation: b.orientation,
       }));
 
-      sceneRef.current?.sync(states, sim.controls);
+      const speed = sim.world.balls.reduce((s, b) =>
+        s + Math.hypot(b.velocity?.x ?? 0, b.velocity?.y ?? 0), 0
+      );
+      let checkIsMoving = speed > 0.001;
+      sceneRef.current?.sync(states, sim.controls, checkIsMoving);
+      setIsMoving(checkIsMoving);
 
       setControls({ ...sim.controls });
       setMetrics(sim.getMetrics());
@@ -95,6 +101,12 @@ export default function App() {
 
       <div className="scene">
         <BilliardsScene ref={sceneRef} />
+        <CueHUD
+          controls={controls}
+          onChange={updateControls}
+          onShoot={shoot}
+          isMoving={isMoving}
+        />
       </div>
 
     </div>

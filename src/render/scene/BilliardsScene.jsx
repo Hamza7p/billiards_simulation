@@ -1,10 +1,12 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef,} from 'react';
 import * as THREE from 'three';
-import { COLORS, TABLE, BALL, SURFACE_Y,} from '@/global/constants.js';
+import { COLORS, BALL, SURFACE_Y } from '@/global/constants.js';
 import { createLights } from './Lights.js';
 import { createTable } from '../objects/createTable.js';
 import { createBalls } from '../objects/createBalls.js';
 import { Camera } from './Camera.js';
+import { createCue } from '../objects/createCue.js';
+import { createGuidanceBeam } from '../objects/createGuidanceBeam.js';
 
 const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
   const mountRef = useRef(null);
@@ -12,19 +14,35 @@ const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
 
   useImperativeHandle(ref, () => ({
    
-    sync(allBallStates, controls) {
+    sync(allBallStates, controls, isMoving) {
+
       const ctx = contextRef.current;
       if (!ctx) return;
 
-      // allBallStates = [ {position, orientation}, ... ]
-      // index 0 = cue ball, يطابق ctx.ballsData.all
+      // update radius of ball
+      if (ctx.currentBallRadius !== controls.ballRadius) {
+        ctx.currentBallRadius = controls.ballRadius;
+        const newGeometry = new THREE.SphereGeometry(controls.ballRadius, 32, 32);
+        ctx.ballsData.all.forEach((mesh) => {
+          if (!mesh?.geometry) return;
+          mesh.geometry.dispose();
+          mesh.geometry = newGeometry;
+        });
+      }
+
       allBallStates.forEach((state, i) => {
         const mesh = ctx.ballsData.all[i];
         if (!mesh || !state) return;
 
+        if (state.pocketed) {
+          mesh.visible = false;
+          return;
+        }
+
+        mesh.visible = true;
         mesh.position.set(
           state.position.x,
-          SURFACE_Y + BALL.radius + 0.0002, // TODO jumps
+          state.position.z + SURFACE_Y + controls.ballRadius + 0.0002,
           -state.position.y,
         );
 
@@ -34,6 +52,31 @@ const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
           -state.orientation.y,
           state.orientation.w,
         );
+
+        const cueBallState = allBallStates[0];
+        if (!cueBallState || cueBallState.pocketed) {
+          ctx.cue.hide();
+          ctx.beam.hide();
+          // ctx.trajectory.hide();
+          return;
+        }
+
+        // Three.js world position of cue ball
+        const ballWorldPos = ctx.ballsData.all[0].position;   // already updated above
+
+        if (isMoving) {
+          ctx.cue.hide();
+          ctx.beam.hide();
+          // ctx.trajectory.hide();
+        } else {
+          ctx.cue.update(ballWorldPos, controls.aimDeg, controls.cueElevDeg, controls.shotImpulse, controls.ballRadius);
+          ctx.beam.update(ballWorldPos, controls.aimDeg);
+          // ctx.trajectory.update(
+          //   { x: cueBallState.position.x, y: cueBallState.position.y },
+          //   controls
+          // );
+        }
+
       });
     },
 
@@ -44,11 +87,29 @@ const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
 
       ctx.camera.reset();
     },
+
+    playStrike(controls, onComplete) {
+      const ctx = contextRef.current;
+      if (!ctx) return;
+
+      const ballWorldPos = ctx.ballsData.all[0].position;
+      ctx.beam.hide();
+      // ctx.trajectory.hide();
+      ctx.cue.playStrike(
+        ballWorldPos,
+        controls.aimDeg,
+        controls.cueElevDeg,
+        controls.shotImpulse,
+        onComplete,
+        controls.ballRadius,
+      );
+    },
+
   }));
 
   useEffect(() => {
-    const mount = mountRef.current;
 
+    const mount = mountRef.current;
     if (!mount) return;
 
     /*
@@ -92,29 +153,14 @@ const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
      */
     createLights(scene);
     createTable(scene);
-
+    // ball 
     const ballsData = createBalls(scene);
     const ball = ballsData.cueBall;
+    // cue helers 
+    const cue      = createCue(scene);
+    const beam     = createGuidanceBeam(scene);
+    // const trajectory = createTrajectory(scene);
 
-    /*
-     * Debug Contact Marker
-     */
-    const contactMarker = new THREE.Mesh(
-      new THREE.SphereGeometry(
-        0.006,
-        8,
-        8
-      ),
-      new THREE.MeshStandardMaterial({
-        color: COLORS.aim,
-        emissive: COLORS.aim,
-        emissiveIntensity: 0.4,
-      })
-    );
-
-    contactMarker.visible = false;
-
-    scene.add(contactMarker);
 
     /*
      * Shared Context
@@ -125,33 +171,29 @@ const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
       camera,
       ball,
       ballsData,
-      contactMarker,
+      cue,
+      beam,
+      // trajectory,
       currentBallRadius: BALL.radius,
     };
 
     /*
      * Resize
      */
-    const handleResize = () => {
-
+    let resizeTimer = null;
+    
+    const resizeObserver = new ResizeObserver(() => {
       const width = mount.clientWidth;
       const height = mount.clientHeight;
 
-      camera.resize(
-        width,
-        height
-      );
+      camera.resize(width, height);
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        renderer.setSize(width, height);
+      }, 10); 
+    });
 
-      renderer.setSize(
-        width,
-        height
-      );
-    };
-
-    window.addEventListener(
-      'resize',
-      handleResize
-    );
+    resizeObserver.observe(mount);
 
     /*
      * Render Loop
@@ -178,23 +220,11 @@ const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
      * Cleanup
      */
     return () => {
-      cancelAnimationFrame(
-        animationId
-      );
-
-      window.removeEventListener(
-        'resize',
-        handleResize
-      );
-
+      cancelAnimationFrame(animationId);
+      resizeObserver.disconnect();  
       camera.dispose();
-
       renderer.dispose();
-
-      mount.removeChild(
-        renderer.domElement
-      );
-
+      mount.removeChild(renderer.domElement);
       contextRef.current = null;
     };
   }, []);

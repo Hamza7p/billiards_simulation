@@ -14,28 +14,34 @@ function slipSpeed(ball) {
   );
 }
 
-export function calculateMetrics({ ball, surface, simulationTime }) {
+export function calculateMetrics({ ball, surface, simulationTime}) {
   const speed = Math.hypot(ball.velocity.x, ball.velocity.y);
   const spin = vec3.length(ball.angularVelocity);
   const slip = slipSpeed(ball);
   const I = calculateInertia(ball.mass, ball.radius);
 
   const momentum = ball.mass * speed;
-  const kineticEnergy = 0.5 * ball.mass * speed * speed;
+  const translationalEnergy = 0.5 * ball.mass * speed * speed;
   const rotationalEnergy = 0.5 * I * spin * spin;
-  const frictionForce = surface.muSliding * ball.mass * surface.gravity;
+  const totalEnergy = translationalEnergy + rotationalEnergy;
+  const frictionForce = (surface.muSliding ?? 0) * ball.mass * (surface.gravity ?? 0);
+  const acceleration = frictionForce / Math.max(ball.mass, 1e-6);
+  const isRolling = speed > 0.001 && slip <= ((surface.muRolling ?? 0) * (surface.gravity ?? 0) * 0.1 + 0.001);
 
   return {
     speed,
     spin,
     slipSpeed: slip,
     momentum,
-    kineticEnergy,
+    kineticEnergy: translationalEnergy,
+    translationalEnergy,
     rotationalEnergy,
+    totalEnergy,
     frictionForce,
-    acceleration: frictionForce / ball.mass,
+    acceleration,
     distanceTraveled: ball.distanceTraveled ?? 0,
     simulationTime,
+    isRolling,
     position: {
       x: ball.position.x,
       y: ball.position.y,
@@ -56,11 +62,14 @@ export function initialMetrics() {
     slipSpeed: 0,
     momentum: 0,
     kineticEnergy: 0,
+    translationalEnergy: 0,
     rotationalEnergy: 0,
+    totalEnergy: 0,
     frictionForce,
     acceleration: frictionForce / (BALL.mass ?? 1),
     distanceTraveled: 0,
     simulationTime: 0,
+    isRolling: false,
     position: {
       x: START_POINT.x,
       y: START_POINT.y,

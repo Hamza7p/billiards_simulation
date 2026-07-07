@@ -17,12 +17,12 @@ export function resolveFloorCollision(ball) {
 }
 
 // ─── Cushion ──────────────────────────────────────────────────────────────
-export function resolveCushionCollision(ball) {
+export function resolveCushionCollision(ball, restitution = PHYSICS.railRestitution) {
   if (ball.pocketed) return;
 
   const R = ball.radius;
   const m = ball.mass;
-  const e = PHYSICS.railRestitution;
+  const e = restitution ?? PHYSICS.railRestitution;
   const mu = 0.2;
 
   const n = vec3.create();
@@ -81,19 +81,19 @@ export function resolvePocketCapture(ball) {
 }
 
 // ─── Ball-to-ball collision ───────────────────────────────────────────────
-export function resolveBallCollisions(balls) {
+export function resolveBallCollisions(balls, restitution = PHYSICS.ballRestitution ?? 0.95) {
   for (let i = 0; i < balls.length; i++) {
     if (balls[i].pocketed) continue;
 
     for (let j = i + 1; j < balls.length; j++) {
       if (balls[j].pocketed) continue;
 
-      _resolvePair(balls[i], balls[j]);
+      _resolvePair(balls[i], balls[j], restitution);
     }
   }
 }
 
-function _resolvePair(a, b) {
+function _resolvePair(a, b, restitution = PHYSICS.ballRestitution ?? 0.95) {
   const dx = b.position.x - a.position.x;
   const dy = b.position.y - a.position.y;
   const dz = b.position.z - a.position.z;
@@ -121,7 +121,7 @@ function _resolvePair(a, b) {
   // already separating
   if (dvn > 0) return;
 
-  const e  = PHYSICS.ballRestitution ?? 0.95;
+  const e  = restitution ?? PHYSICS.ballRestitution ?? 0.95;
   const ma = a.mass;
   const mb = b.mass;
   const j  = -(1 + e) * dvn / (1 / ma + 1 / mb);

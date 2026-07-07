@@ -6,7 +6,7 @@ import { applyStrike }     from '@/physics/systems/strike';
 import { updateSimulation } from './updateSimulation';
 import { createControls }  from '../physics/metrics/controls';
 import { calculateMetrics } from '@/physics/metrics/metrics';
-import { BALL, START_POINT, PHYSICS, RACK_FOOT_SPOT } from '@/global/constants';
+import { START_POINT, PHYSICS } from '@/global/constants';
 import { Quaternion } from 'three';
 import { RACK_ORDER, calcRackPositions } from '@/global/ballsTriangle';
 
@@ -28,8 +28,8 @@ export function createSimulation() {
   const rackPositions = calcRackPositions();
   const rackBalls = RACK_ORDER.map((num, i) =>
     Ball({
-      radius:   BALL.radius,
-      mass:     BALL.mass,
+      radius:   controls.ballRadius,
+      mass:     controls.ballMass,
       position: { x: rackPositions[i].x, y: rackPositions[i].y, z: 0 },
     })
   );
@@ -50,6 +50,11 @@ export function createSimulation() {
     // sync live controls → physics properties
     cueBall.mass   = controls.ballMass;
     cueBall.radius = controls.ballRadius;
+
+    rackBalls.forEach((ball) => {
+      ball.mass = controls.ballMass;
+      ball.radius = controls.ballRadius;
+    });
 
     surface.muSliding   = controls.muSliding;
     surface.muRolling   = controls.muRolling;
@@ -83,7 +88,7 @@ export function createSimulation() {
   }
 
   function reset() {
-    world.balls.forEach((ball, i) => {
+    world.balls.forEach((ball) => {
       ball.pocketed   = false;
       ball.jumpedOff  = false;
       ball.distanceTraveled = 0;

@@ -80,7 +80,23 @@
   --color-scroll-track: #1c2129;
   --color-scroll-thumb: #8c97a3;
   --color-scroll-thumb-hover: #b0bac4;
+  /* CueHUD theme tokens */
+  --surface-0: #0f1114;
+  --surface-1: #15171c;
+  --surface-2: #1e2228;
+  --border: #2a3038;
+  --border-strong: #3d4654;
+  --border-stronger: #4b5563;
+  --border-accent: #f59e0b;
+  --bg-accent: rgba(245, 158, 11, 0.12);
+  --fill-accent: #f59e0b;
+  --text-primary: #e8eaed;
+  --text-secondary: #cbd5e1;
+  --text-muted: #9aa3ad;
+  --text-accent: #f59e0b;
+  --on-accent: #111827;
   --font-mono: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', monospace;
+  --radius: 10px;
   --panel-padding: 20px;
   --panel-gap: 18px;
   --panel-radius: 14px;
@@ -108,12 +124,17 @@ body {
 .control-panel {
   border-right: 1px solid var(--color-border);
   background: var(--color-panel-bg);
+  position: relative;
+  flex-shrink: 0;
+  transition: min-width 0.25s ease, flex 0.25s ease;
 }
 
 .scene {
   flex: 3;
   position: relative;
   width: 100%;
+  min-width: 0;  
+  height: 100%;
 }
 
 button {

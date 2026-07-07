@@ -40,10 +40,8 @@ function _buildCushionSegments() {
   const halfL = CLOTH_LENGTH / 2;
   const halfW = CLOTH_WIDTH  / 2;
   const g     = POCKET_GAP;
-  const cp    = CLOTH_LENGTH / 2 * 0; // corner x extent (pocket centre x)
   const cpx   = halfL + CP;           // corner pocket x
-  const cpz   = halfW + CP;           // corner pocket z
-  const spz   = halfW + SP;           // side pocket z (not used for x-rails)
+  const cpz   = halfW + CP;           // side pocket z (not used for x-rails)
 
   return [
     // Long rails (parallel to X axis) — back (z = -halfW) and front (z = +halfW)

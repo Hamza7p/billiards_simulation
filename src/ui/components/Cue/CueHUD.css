@@ -1,0 +1,143 @@
+@import '@/index.css';
+
+.cue-hud {
+  position: absolute;
+  bottom: 16px;
+  left: 5%;
+  display: flex;
+  gap: 20px;
+  align-items: flex-end;
+  z-index: 20;
+  pointer-events: all;
+}
+
+.hud-panel {
+  border: 0.5px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  backdrop-filter: blur(8px);
+}
+
+.hud-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+kbd {
+  display: inline-flex;
+  align-items: center;
+  background: var(--surface-2);
+  border: 0.5px solid var(--border-strong);
+  border-radius: 4px;
+  font-size: 10px;
+  color: var(--text-secondary);
+  padding: 1px 5px;
+  font-family: var(--font-mono);
+  margin-left: 4px;
+}
+
+/* -------- Impulse ---------*/
+.impulse-panel { 
+  width: 200px; 
+}
+.impulse-row { display: flex; align-items: flex-end; gap: 12px; }
+
+
+.impulse-bar-wrap {
+  position: relative;
+  width: 32px;
+  height: 180px;
+  overflow: hidden;         
+  border-radius: 7px;
+  border: 0.5px solid var(--border);
+}
+
+.impulse-bar-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.cue-image {
+  position: absolute;
+  left: -4px;
+  top: 23px;          
+  width: 130px;           
+  height: auto;
+  transform-origin: bottom center;
+  /* translate: -50% 0; */
+  pointer-events: none;
+  transition: transform 50ms linear;
+  z-index: 2;
+  object-fit: cover; 
+}
+
+
+.impulse-right { 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center;
+  gap: 6px; flex: 1; 
+}
+.impulse-val { font-size: 22px; font-weight: 500; color: var(--text-primary); font-family: var(--font-mono); }
+.impulse-unit { font-size: 11px; color: var(--text-muted); }
+.impulse-input {
+  width: 80px; padding: 4px 8px; border-radius: var(--radius);
+  border: 0.5px solid var(--border-strong);
+  background: var(--surface-0); color: var(--text-primary);
+  font-size: 13px; font-family: var(--font-mono); text-align: center;
+}
+.tick-row { display: flex; gap: 4px; flex-wrap: wrap; }
+.tick {
+  width: 20px; height: 6px; border-radius: 3px;
+  background: var(--surface-0); border: 0.5px solid var(--border);
+  cursor: pointer; transition: background .1s;
+}
+.tick.lit { background: var(--fill-accent); }
+
+.impulse-range {
+  width: 100%;
+  accent-color: var(--color-accent);
+  margin-top: 4px;
+}
+
+.shoot-btn {
+  text-align: center;
+  border: 0.5px solid var(--color-button-border);
+  transition: background .15s;
+}
+
+/* --------- Direction ---------- */
+.dir-panel { width: 168px; }
+.dir-disc {
+  width: 120px; height: 120px; border-radius: 50%;
+  background: var(--surface-0); border: 0.5px solid var(--border);
+  cursor: crosshair; align-self: center; overflow: hidden;
+}
+.dir-vals { display: flex; flex-direction: column; gap: 2px; }
+.dir-val-row { display: flex; justify-content: space-between; align-items: center; }
+.dir-val-label { font-size: 11px; color: var(--text-muted); }
+.dir-val-num { font-size: 12px; color: var(--text-primary); font-family: var(--font-mono); }
+.elev-row { 
+  display: flex; 
+  align-items: flex-start; 
+  flex-direction: column; 
+  gap: 6px; 
+}
+.elev-range { 
+  flex: 1; 
+  accent-color: var(--color-accent);
+}
+
+/* ----------- Contact ----------- */
+.contact-panel { width: 160px; }
+.ball-wrap {
+  width: 110px; height: 110px;
+  align-self: center; cursor: crosshair;
+}

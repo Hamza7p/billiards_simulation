@@ -26,48 +26,22 @@ export const COLORS = {
   highlight: 0xf8f1d4,
 };
 
-
-// TODO remove
-export const TABLE = {
-  
-  // Snooker table dimensions
-  width: 1.78,
-  length: 3.57,
-  thickness: 0.14,
-  
-  // Edges & Pocket
-  railWidth: 0.12,
-  railHeight: 0.085,
-  pocketRadius: 0.095,
-  pocketGap: 0.095 * 1.6,
-  
-  // Surface
-  surfaceZ: 0.07,
-  surfaceY: 0.07,
-  
-};
-
-
 export const CAMERA = {
   // circle system: (theta, phi, r)
   initialTheta: 0.28,
   initialPhi: 0.70,
   initialRadius: 7.2,
-  
   // bounds
   minRadius: 3,
   maxRadius: 13,
   minPhi: 0.15,
   maxPhi: 1.38,
-  
   // speeds
   rotationSpeed: 0.007,
   tiltSpeed: 0.006,
   zoomSpeed: 0.007,
-  
   // look points
   lookAtPoint: { x: 0, y: 0.05, z: 0 },
-  
   // perspective
   defaultPosition:{ x: 0, y: -2.3, z: 2.5 },
   defaultTarget: { x: 0, y: 0, z: 0 },
@@ -81,10 +55,7 @@ export const CAMERA = {
 };
 
 
-// ─── Snooker Table — World-standard play dimensions ───────────────────────
-// Source: World Snooker / WPBSA spec
-// These are the CLOTH (ball-rolling) dimensions — everything else derives from them.
-
+// ─── Snooker 9ft Table — World-standard play dimensions ───────────────────────
 export const CLOTH_LENGTH = 3.569;   // metres, long axis  (X)
 export const CLOTH_WIDTH  = 1.778;   // metres, short axis (Z)
 

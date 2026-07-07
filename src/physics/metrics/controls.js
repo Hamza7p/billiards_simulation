@@ -1,19 +1,19 @@
-import { BALL, SURFACE } from '@/global/constants';
+import { BALL, PHYSICS, SURFACE } from '@/global/constants';
 
 export function createControls() {
   return {
-    shotImpulse: 1,
+    shotImpulse: 0.6,
     aimDeg: 0,
-    cueElevDeg: 0,
+    cueElevDeg: 5,
     contactX: 0,
     contactY: 0,
-    contactZ: 0,
     muSliding: SURFACE.muSliding,
     muRolling: SURFACE.muRolling,
     spinDamping: SURFACE.spinDamping,
     gravity: SURFACE.gravity,
     ballMass: BALL.mass,
     ballRadius: BALL.radius,
-    cameraMode: 'perspective',
+    eBall: PHYSICS.ballRestitution ?? 0.95,
+    eCushion: PHYSICS.railRestitution ?? 0.65,
   };
 }
