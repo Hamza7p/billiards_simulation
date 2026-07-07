@@ -208,6 +208,9 @@ export default function SimulationPanel({
             قوة الاحتكاك اللحظية: {stats.frictionForce.toFixed(4)} N
           </div>
           <div className="panel-stat-item">
+            التسارع: {stats.acceleration?.toFixed(4) || '0.0000'} m/s²
+          </div>
+          <div className="panel-stat-item">
             حالة الحركة: {stats.isRolling ? 'تدحرج نقي' : 'انزلاق'}
           </div>
           <div className="panel-stat-item">

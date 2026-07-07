@@ -14,6 +14,7 @@ import { RACK_ORDER, calcRackPositions } from '@/global/ballsTriangle';
 // ─── Factory ──────────────────────────────────────────────────────────────
 export function createSimulation() {
   const controls = createControls();
+  const defaultControls = createControls();  // Save defaults for reset
   let simulationTime = 0;
   let isRunning = false;
 
@@ -86,10 +87,12 @@ export function createSimulation() {
   }
 
   function reset() {
+    // Reset all ball states
     world.balls.forEach((ball) => {
       ball.pocketed   = false;
       ball.jumpedOff  = false;
       ball.distanceTraveled = 0;
+      ball.orientation = new Quaternion();
       vec3.zero(ball.velocity);
       vec3.zero(ball.angularVelocity);
     });
@@ -101,6 +104,9 @@ export function createSimulation() {
     rackPositions.forEach((pos, i) => {
       vec3.set(rackBalls[i].position, pos.x, pos.y, 0);
     });
+
+    // Reset controls to defaults
+    Object.assign(controls, defaultControls);
 
     simulationTime = 0;
     isRunning = false;
