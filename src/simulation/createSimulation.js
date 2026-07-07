@@ -60,18 +60,16 @@ export function createSimulation() {
 
     updateSimulation({ world, surface, dt });
 
-    // stop check — only based on cue ball
-    const speed = Math.hypot(cueBall.velocity.x, cueBall.velocity.y);
-    const spin  = vec3.length(cueBall.angularVelocity);
+    // stop check — ALL balls must be at rest
+    const allStopped = world.balls.every(b => {
+      if (b.pocketed || b.jumpedOff) return true;
+      const speed = vec3.length(b.velocity);
+      const spin  = vec3.length(b.angularVelocity);
+      return speed < PHYSICS.stopSpeed && spin < PHYSICS.stopAngular;
+    });
 
-    if (isRunning && speed < PHYSICS.stopSpeed && spin < PHYSICS.stopAngular) {
-      world.balls.forEach(b => {
-        if (b.pocketed || b.jumpedOff) return;
-        vec3.zero(b.velocity);
-        vec3.zero(b.angularVelocity);
-      });
+    if (allStopped)
       isRunning = false;
-    }
   });
 
   // ── Actions ───────────────────────────────────────────────────────────
@@ -87,7 +85,6 @@ export function createSimulation() {
       ball.pocketed   = false;
       ball.jumpedOff  = false;
       ball.distanceTraveled = 0;
-      ball.orientation = new Quaternion();
       vec3.zero(ball.velocity);
       vec3.zero(ball.angularVelocity);
     });

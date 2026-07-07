@@ -30,19 +30,31 @@ function ballMaterial(num) {
 function cueBallMaterial() {
   // procedural white ball with a red contact-point marker at the texture centre
   const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = 256;
+  canvas.width = 512;
+  canvas.height = 256;
   const ctx = canvas.getContext('2d');
 
   ctx.fillStyle = '#f8f8f0';
-  ctx.fillRect(0, 0, 256, 256);
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  ctx.fillStyle = '#8b0000';
-  ctx.beginPath();
-  ctx.arc(0, 128, 25, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.fillStyle = '#8b0000'; 
+  
+  const points = [
+    [0.25, 0.25], [0.75, 0.25],
+    [0.5, 0.5],   [0.0, 0.5],
+    [0.25, 0.75], [0.75, 0.75]
+  ];
 
+  const dotRadius = 24; 
+
+  points.forEach(([x, y]) => {
+    ctx.beginPath();
+    ctx.arc(canvas.width * x, canvas.height * y, dotRadius, 0, Math.PI * 2);
+    ctx.fill();
+  });
 
   const tex = new THREE.CanvasTexture(canvas);
+
   return new THREE.MeshStandardMaterial({
     map:       tex,
     roughness: 0.04,
