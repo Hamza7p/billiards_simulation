@@ -8,28 +8,15 @@ import {
 } from '@/physics/systems/helpers';
 
 export function resolveBallCollisions(balls, eBall) {
-  const pending = balls.map(() => []);
-
   for (let i = 0; i < balls.length; i++) {
     if (balls[i].pocketed) continue;
 
     for (let j = i + 1; j < balls.length; j++) {
       if (balls[j].pocketed) continue;
 
-      const collision = _resolvePair(balls[i], balls[j], eBall);
-
-      if (!collision) continue;
-
-      const { j1, rc1, j2, rc2 } = collision;
-
-      pending[i].push({j: j1, rc: rc1});
-      pending[j].push({j: j2, rc: rc2});
+      _resolvePair(balls[i], balls[j], eBall);
     }
   }
-
-  for (let i = 0; i < balls.length; i++)
-    for (const impulse of pending[i])
-      applyImpulse(balls[i], impulse.j, impulse.rc);
 }
 
 function _resolvePair(ball1, ball2, e) {
@@ -60,8 +47,9 @@ function _resolvePair(ball1, ball2, e) {
   const jt = Math.min(Math.abs(jn) * mu, 1/7 * m * vec3.length(vt));
   const j1 = mergeImpulse(-jn, n, -jt, t);
   const j2 = mergeImpulse(jn, n, jt, t);
-
-  return {j1, rc1, j2, rc2};
+  
+  applyImpulse(ball1, j1, rc1);
+  applyImpulse(ball2, j2, rc2);
 }
 
 
