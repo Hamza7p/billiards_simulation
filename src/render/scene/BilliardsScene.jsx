@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef,} from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import * as THREE from 'three';
 import { COLORS, BALL, SURFACE_Y } from '@/global/constants.js';
 import { createLights } from './Lights.js';
@@ -11,11 +11,12 @@ import { createGuidanceBeam } from '../objects/createGuidanceBeam.js';
 const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
   const mountRef = useRef(null);
   const contextRef = useRef(null);
+  const placementHandlerRef = useRef(null);
+  const placementEnabledRef = useRef(false);
 
   useImperativeHandle(ref, () => ({
-   
-    sync(allBallStates, controls, isMoving) {
 
+    sync(allBallStates, controls, isMoving) {
       const ctx = contextRef.current;
       if (!ctx) return;
 
@@ -57,7 +58,6 @@ const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
         if (!cueBallState || cueBallState.pocketed) {
           ctx.cue.hide();
           ctx.beam.hide();
-          // ctx.trajectory.hide();
           return;
         }
 
@@ -67,24 +67,16 @@ const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
         if (isMoving) {
           ctx.cue.hide();
           ctx.beam.hide();
-          // ctx.trajectory.hide();
         } else {
           ctx.cue.update(ballWorldPos, controls.aimDeg, controls.cueElevDeg, controls.shotImpulse, controls.ballRadius);
           ctx.beam.update(ballWorldPos, controls.aimDeg);
-          // ctx.trajectory.update(
-          //   { x: cueBallState.position.x, y: cueBallState.position.y },
-          //   controls
-          // );
         }
-
       });
     },
 
     resetCamera() {
       const ctx = contextRef.current;
-
       if (!ctx) return;
-
       ctx.camera.reset();
     },
 
@@ -94,7 +86,6 @@ const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
 
       const ballWorldPos = ctx.ballsData.all[0].position;
       ctx.beam.hide();
-      // ctx.trajectory.hide();
       ctx.cue.playStrike(
         ballWorldPos,
         controls.aimDeg,
@@ -105,66 +96,49 @@ const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
       );
     },
 
+    // ── Ball-in-hand placement ────────────────────────────────────────────
+    // `handler` receives table-space {x, y} on click; caller decides where
+    // the ball actually ends up (legality, occupancy) and applies it.
+    setPlacementResolver(handler) {
+      placementHandlerRef.current = handler;
+    },
+
+    setPlacementEnabled(enabled) {
+      placementEnabledRef.current = enabled;
+      const ctx = contextRef.current;
+      if (!ctx?.placementMarker) return;
+      ctx.placementMarker.visible = enabled;
+      ctx.renderer.domElement.style.cursor = enabled ? 'crosshair' : 'default';
+    },
+
   }));
 
   useEffect(() => {
-
     const mount = mountRef.current;
     if (!mount) return;
 
-    /*
-     * Scene
-     */
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(COLORS.background);
 
-    /*
-     * Renderer
-     */
-    const renderer = new THREE.WebGLRenderer({
-        antialias: true,
-      });
-
-    renderer.setSize(
-      mount.clientWidth,
-      mount.clientHeight
-    );
-
-    renderer.setPixelRatio(
-      Math.min(window.devicePixelRatio, 2)
-    );
-
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(mount.clientWidth, mount.clientHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
     mount.appendChild(renderer.domElement);
 
-    /*
-     * Camera
-     */
-    const camera = new Camera(
-      mount.clientWidth,
-      mount.clientHeight,
-      renderer.domElement
-    );
+    const camera = new Camera(mount.clientWidth, mount.clientHeight, renderer.domElement);
 
-    /*
-     * World
-     */
     createLights(scene);
     createTable(scene);
-    // ball 
+
     const ballsData = createBalls(scene);
     const ball = ballsData.cueBall;
-    // cue helers 
-    const cue      = createCue(scene);
-    const beam     = createGuidanceBeam(scene);
-    // const trajectory = createTrajectory(scene);
+    const cue  = createCue(scene);
+    const beam = createGuidanceBeam(scene);
 
+    const placementMarker = _createPlacementMarker(scene);
 
-    /*
-     * Shared Context
-     */
     contextRef.current = {
       scene,
       renderer,
@@ -173,55 +147,57 @@ const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
       ballsData,
       cue,
       beam,
-      // trajectory,
       currentBallRadius: BALL.radius,
+      placementMarker,
     };
 
-    /*
-     * Resize
-     */
     let resizeTimer = null;
-    
     const resizeObserver = new ResizeObserver(() => {
       const width = mount.clientWidth;
       const height = mount.clientHeight;
-
       camera.resize(width, height);
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        renderer.setSize(width, height);
-      }, 10); 
+      resizeTimer = setTimeout(() => renderer.setSize(width, height), 10);
     });
-
     resizeObserver.observe(mount);
 
-    /*
-     * Render Loop
-     */
-    let animationId;
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -SURFACE_Y);
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    const placementPoint = new THREE.Vector3();
 
-    const animate = () => {
-      animationId =
-        requestAnimationFrame(
-          animate
-        );
+    const updatePlacementFromPointer = (event) => {
+      if (!placementEnabledRef.current || !placementHandlerRef.current) return;
 
-      camera.update();
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera.camera);
+      if (!raycaster.ray.intersectPlane(plane, placementPoint)) return;
 
-      renderer.render(
-        scene,
-        camera.camera
-      );
+      placementMarker.position.set(placementPoint.x, SURFACE_Y + 0.001, placementPoint.z);
+      placementMarker.visible = true;
+
+      if (event.type === 'pointerdown') {
+        // three.z → physics.y (physics.y = -three.z)
+        placementHandlerRef.current({ x: placementPoint.x, y: -placementPoint.z });
+      }
     };
 
+    renderer.domElement.addEventListener('pointermove', updatePlacementFromPointer);
+    renderer.domElement.addEventListener('pointerdown', updatePlacementFromPointer);
+
+    let animationId;
+    const animate = () => {
+      animationId = requestAnimationFrame(animate);
+      camera.update();
+      renderer.render(scene, camera.camera);
+    };
     animate();
 
-    /*
-     * Cleanup
-     */
     return () => {
       cancelAnimationFrame(animationId);
-      resizeObserver.disconnect();  
+      resizeObserver.disconnect();
       camera.dispose();
       renderer.dispose();
       mount.removeChild(renderer.domElement);
@@ -232,12 +208,26 @@ const BilliardsScene = forwardRef(function BilliardsScene(_, ref) {
   return (
     <div
       ref={mountRef}
-      style={{
-        width: '100%',
-        height: '100%',
-      }}
+      style={{ width: '100%', height: '100%' }}
     />
   );
 });
+
+function _createPlacementMarker(scene) {
+  const marker = new THREE.Mesh(
+    new THREE.CircleGeometry(0.0285, 24),
+    new THREE.MeshBasicMaterial({
+      color: 0xFFF8B5,
+      transparent: true,
+      opacity: 0.7,
+      depthWrite: false,
+    })
+  );
+  marker.rotation.x = -Math.PI / 2;
+  marker.position.y = SURFACE_Y + 0.001;
+  marker.visible = false;
+  scene.add(marker);
+  return marker;
+}
 
 export default BilliardsScene;

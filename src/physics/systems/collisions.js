@@ -1,11 +1,16 @@
 import * as vec3 from '../math/Vector3';
-import { CLOTH_LENGTH, CLOTH_WIDTH } from '@/global/constants';
-import { POCKET_CENTERS } from '@/simulation/tableCollision';
-import { 
-    computeContactVelocity,
-    computeContactDirections,
-    applyImpulse,
-    mergeImpulse,
+import {
+  POCKET_CENTERS,
+  CUSHION_HEIGHT,
+  findPocketAt,
+  findCushionWallAt,
+  isBallOffTable,
+} from '@/simulation/tableCollision';
+import {
+  computeContactVelocity,
+  computeContactDirections,
+  applyImpulse,
+  mergeImpulse,
 } from '@/physics/systems/helpers';
 import { playWallHitSound } from '@/render/helpers/sounds';
 
@@ -15,10 +20,9 @@ export function resolveFloorCollision(ball, eFloor) {
 
   ball.position.z = 0;
 
-  if (Math.abs(ball.velocity.z) < 0.1)
+  if (Math.abs(ball.velocity.z) < 0.1) {
     ball.velocity.z = 0;
-
-  else if (ball.velocity.z < 0) {
+  } else if (ball.velocity.z < 0) {
     ball.velocity.z *= -eFloor;
   }
 }
@@ -29,11 +33,9 @@ export function resolveCushionCollision(ball, eCushion) {
 
   const R = ball.radius;
   const m = ball.mass;
-  const e = eCushion;
   const mu = 0.2;
 
   const n = vec3.create();
-
   if (!_detectCushionContact(ball, n)) return;
 
   playWallHitSound();
@@ -47,7 +49,7 @@ export function resolveCushionCollision(ball, eCushion) {
   const vc = computeContactVelocity(ball, rc);
   const { vt, t } = computeContactDirections(vc, n);
 
-  const jn = -m * (1 + e) * vec3.dot(vc, n);
+  const jn = -m * (1 + eCushion) * vec3.dot(vc, n);
   const jt = -Math.min(Math.abs(jn) * mu, 2/7 * m * vec3.length(vt));
   const j = mergeImpulse(jn, n, jt, t);
 
@@ -55,71 +57,109 @@ export function resolveCushionCollision(ball, eCushion) {
 }
 
 // ─── Pocket capture ───────────────────────────────────────────────────────
+// A ball is captured either by reaching a real pocket mouth, or by escaping
+// through a cushion gap beyond the cloth edge — both count as falling in,
+// never as jumping off the table.
 export function resolvePocketCapture(ball) {
   if (ball.pocketed) return;
 
-  for (const pocket of POCKET_CENTERS) {
-    const dx = ball.position.x - pocket.x;
-    const dy = ball.position.y - pocket.y;
-    const distance = Math.hypot(dx, dy);
+  const pocket = findPocketAt(ball.position) || _pocketBeyondGap(ball);
+  if (!pocket) return;
 
-    if (distance < pocket.mouthRadius) {
-      ball.pocketed = true;
-      ball.pocketedBy = pocket;
-      ball.pocketedAt = Date.now();
+  ball.pocketed   = true;
+  ball.pocketedBy = pocket;
+  ball.pocketedAt = Date.now();
 
-      ball.position.x = pocket.x;
-      ball.position.y = pocket.y;
-      ball.position.z = -0.25;
+  ball.position.x = pocket.x;
+  ball.position.y = pocket.y;
+  ball.position.z = -0.25;
 
-      vec3.zero(ball.velocity);
-      vec3.zero(ball.angularVelocity);
-      return;
-    }
-  }
+  vec3.zero(ball.velocity);
+  vec3.zero(ball.angularVelocity);
 }
 
 // ─── Off-table jump ───────────────────────────────────────────────────────
 export function resolveJumpedBall(ball) {
   if (ball.pocketed) return false;
 
-  const r = ball.radius;
-  const p = ball.position;
+  // Already claimed by a pocket (mouth or gap) this tick — not a jump.
+  if (findPocketAt(ball.position)) return false;
+  if (!isBallOffTable(ball)) return false;
 
-  const outX = p.x < -(CLOTH_LENGTH / 2) - r || p.x > (CLOTH_LENGTH / 2) + r;
-  const outY = p.y < -(CLOTH_WIDTH  / 2) - r || p.y > (CLOTH_WIDTH  / 2) + r;
+  ball.jumpedOff   = true;
+  ball.jumpedOffAt = Date.now();
+  vec3.zero(ball.velocity);
+  vec3.zero(ball.angularVelocity);
+  return true;
+}
 
-  if (outX || outY) {
-    // freeze in place — game logic layer handles re-spotting
-    ball.jumpedOff = true;
-    vec3.zero(ball.velocity);
-    vec3.zero(ball.angularVelocity);
-    return true;
-  }
+// ─── Ball return (respawn) ─────────────────────────────────────────────────
+// Purely mechanical: puts a pocketed-or-jumped ball back into play at
+// `respawnPosition`. It does NOT decide which balls should be returned —
+// that's the caller's job (e.g. only ever call this for the cue ball, or
+// for object balls specifically because they jumped off).
+export function resolveBallReturn(ball, respawnPosition) {
+  if (!ball.pocketed && !ball.jumpedOff) return false;
 
-  return false;
+  ball.position.x = respawnPosition.x;
+  ball.position.y = respawnPosition.y;
+  ball.position.z = respawnPosition.z ?? 0;
+
+  vec3.zero(ball.velocity);
+  vec3.zero(ball.angularVelocity);
+
+  ball.pocketed   = false;
+  ball.pocketedBy = null;
+  ball.jumpedOff  = false;
+
+  return true;
 }
 
 // ─── Internal ─────────────────────────────────────────────────────────────
 function _detectCushionContact(ball, n) {
   if (ball.pocketed) return false;
 
-  const R   = ball.radius;
-  const p   = ball.position;
-  const hL  = CLOTH_LENGTH / 2;
-  const hW  = CLOTH_WIDTH  / 2;
+  // Ball has hopped high enough to clear the physical cushion top — let it
+  // fly over instead of bouncing off an invisible 2D wall (jump shots).
+  if (ball.position.z >= CUSHION_HEIGHT) return false;
 
-  // Skip if near a pocket mouth (avoid false cushion bounce inside pocket)
+  const R = ball.radius;
+  const p = ball.position;
+
+  const wall = findCushionWallAt(p, R);
+  if (!wall) return false; // clear of every rail, or inside a pocket-mouth gap
+
+  const sign = Math.sign(wall.value);
+
+  if (wall.axis === 'y') {
+    n.x = 0; n.y = sign;
+    p.y = wall.value - sign * R;
+  } else {
+    n.x = sign; n.y = 0;
+    p.x = wall.value - sign * R;
+  }
+
+  return true;
+}
+
+function _pocketBeyondGap(ball) {
+  if (!isBallOffTable(ball)) return null;
+  if (findCushionWallAt(ball.position, ball.radius)) return null; // still on a real cushion
+
+  return _nearestPocket(ball.position);
+}
+
+function _nearestPocket(position) {
+  let nearest = null;
+  let bestDistance = Infinity;
+
   for (const pocket of POCKET_CENTERS) {
-    if (Math.hypot(p.x - pocket.x, p.y - pocket.y) < pocket.radius * 1.2) {
-      return false;
+    const distance = Math.hypot(position.x - pocket.x, position.y - pocket.y);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      nearest = pocket;
     }
   }
 
-  if (p.x + R > hL)  { n.x =  1; p.x =  hL - R; return true; }
-  if (p.x - R < -hL) { n.x = -1; p.x = -hL + R; return true; }
-  if (p.y + R > hW)  { n.y =  1; p.y =  hW - R; return true; }
-  if (p.y - R < -hW) { n.y = -1; p.y = -hW + R; return true; }
-
-  return false;
+  return nearest;
 }
