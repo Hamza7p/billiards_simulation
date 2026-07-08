@@ -9,6 +9,7 @@ import { calculateMetrics } from '@/physics/metrics/metrics';
 import { START_POINT, PHYSICS } from '@/global/constants';
 import { Quaternion } from 'three';
 import { RACK_ORDER, calcRackPositions } from '@/global/ballsTriangle';
+import { playCueHitSound } from '@/render/helpers/sounds';
 
 
 // ─── Factory ──────────────────────────────────────────────────────────────
@@ -80,6 +81,7 @@ export function createSimulation() {
 
   // ── Actions ───────────────────────────────────────────────────────────
   function shoot() {
+    playCueHitSound();
     if (cueBall.pocketed) return;
     simulationTime = 0;
     isRunning = true;

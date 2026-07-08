@@ -1,3 +1,4 @@
+import { playBallHitSound } from '@/render/helpers/sounds';
 import * as vec3 from '../math/Vector3';
 import { 
     computeContactVelocity,
@@ -38,6 +39,8 @@ function _resolvePair(ball1, ball2, e) {
 
   const n = vec3.create();
   if (!_detectBallsContact(ball1, ball2, n)) return;
+
+  playBallHitSound();
 
   const rc1 = vec3.create();
   const rc2 = vec3.create();

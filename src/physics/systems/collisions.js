@@ -7,6 +7,7 @@ import {
     applyImpulse,
     mergeImpulse,
 } from '@/physics/systems/helpers';
+import { playWallHitSound } from '@/render/helpers/sounds';
 
 // ─── Floor ────────────────────────────────────────────────────────────────
 export function resolveFloorCollision(ball, eFloor) {
@@ -34,6 +35,8 @@ export function resolveCushionCollision(ball, eCushion) {
   const n = vec3.create();
 
   if (!_detectCushionContact(ball, n)) return;
+
+  playWallHitSound();
 
   n.z = 0.1;
   vec3.normalize(n, n);
