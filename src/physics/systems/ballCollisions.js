@@ -6,7 +6,7 @@ import {
     mergeImpulse,
 } from '@/physics/systems/helpers';
 
-export function resolveBallCollisions(balls) {
+export function resolveBallCollisions(balls, eBall) {
   const pending = balls.map(() => []);
 
   for (let i = 0; i < balls.length; i++) {
@@ -15,7 +15,7 @@ export function resolveBallCollisions(balls) {
     for (let j = i + 1; j < balls.length; j++) {
       if (balls[j].pocketed) continue;
 
-      const collision = _resolvePair(balls[i], balls[j]);
+      const collision = _resolvePair(balls[i], balls[j], eBall);
 
       if (!collision) continue;
 
@@ -31,10 +31,9 @@ export function resolveBallCollisions(balls) {
       applyImpulse(balls[i], impulse.j, impulse.rc);
 }
 
-function _resolvePair(ball1, ball2) {
+function _resolvePair(ball1, ball2, e) {
   const R = ball1.radius;
   const m = ball1.mass;
-  const e = 0.93;
   const mu = 0.2;
 
   const n = vec3.create();

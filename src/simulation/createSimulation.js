@@ -64,7 +64,7 @@ export function createSimulation() {
 
     if (isRunning) simulationTime += dt;
 
-    updateSimulation({ world, surface, dt });
+    updateSimulation({ world, surface, dt, controls });
 
     // stop check — ALL balls must be at rest
     const allStopped = world.balls.every(b => {

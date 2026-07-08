@@ -1,5 +1,5 @@
 import * as vec3 from '../math/Vector3';
-import { PHYSICS, CLOTH_LENGTH, CLOTH_WIDTH } from '@/global/constants';
+import { CLOTH_LENGTH, CLOTH_WIDTH } from '@/global/constants';
 import { POCKET_CENTERS } from '@/simulation/tableCollision';
 import { 
     computeContactVelocity,
@@ -9,7 +9,7 @@ import {
 } from '@/physics/systems/helpers';
 
 // ─── Floor ────────────────────────────────────────────────────────────────
-export function resolveFloorCollision(ball) {
+export function resolveFloorCollision(ball, eFloor) {
   if (ball.position.z >= 0) return;
 
   ball.position.z = 0;
@@ -18,18 +18,17 @@ export function resolveFloorCollision(ball) {
     ball.velocity.z = 0;
 
   else if (ball.velocity.z < 0) {
-    const e = 0.3;
-    ball.velocity.z *= -e;
+    ball.velocity.z *= -eFloor;
   }
 }
 
 // ─── Cushion ──────────────────────────────────────────────────────────────
-export function resolveCushionCollision(ball, restitution = PHYSICS.railRestitution) {
+export function resolveCushionCollision(ball, eCushion) {
   if (ball.pocketed) return;
 
   const R = ball.radius;
   const m = ball.mass;
-  const e = restitution ?? PHYSICS.railRestitution;
+  const e = eCushion;
   const mu = 0.2;
 
   const n = vec3.create();
@@ -59,15 +58,16 @@ export function resolvePocketCapture(ball) {
   for (const pocket of POCKET_CENTERS) {
     const dx = ball.position.x - pocket.x;
     const dy = ball.position.y - pocket.y;
+    const distance = Math.hypot(dx, dy);
 
-    if (Math.hypot(dx, dy) < pocket.radius) {
-      ball.pocketed  = true;
+    if (distance < pocket.mouthRadius) {
+      ball.pocketed = true;
       ball.pocketedBy = pocket;
+      ball.pocketedAt = Date.now();
 
-      // pull toward pocket centre then drop
       ball.position.x = pocket.x;
       ball.position.y = pocket.y;
-      ball.position.z = -0.25;  // drop below table surface
+      ball.position.z = -0.25;
 
       vec3.zero(ball.velocity);
       vec3.zero(ball.angularVelocity);

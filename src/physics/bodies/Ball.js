@@ -11,6 +11,10 @@ export const Ball = (opts = {}) => {
   return {
     mass,
     radius,
+    pocketed: false,
+    jumpedOff: false,
+    pocketedAt: null,
+    jumpedOffAt: null,
     position: opts.position != null
       ? vec3.clone(opts.position)
       : vec3.create(START_POINT.x, START_POINT.y, START_POINT.z),

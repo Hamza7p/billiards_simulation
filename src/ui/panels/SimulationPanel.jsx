@@ -147,6 +147,23 @@ export default function SimulationPanel({
         />
       </PanelRow>
 
+      <PanelRow
+        label="ارتداد الكرة من الأرض"
+        en="e_floor"
+        formula="v'_n = -e_floor · v_n"
+        value={controls.eFloor.toFixed(3)}
+      >
+        <input
+          className="panel-input"
+          type="range"
+          min="0.1"
+          max="0.9"
+          step="0.005"
+          value={controls.eFloor}
+          onChange={(e) => onChange({ eFloor: Number(e.target.value) })}
+        />
+      </PanelRow>
+
       {/* ================= enviroment ================= */}
       <h2 className="panel-section-title">البيئة</h2>
 
