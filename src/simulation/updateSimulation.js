@@ -8,7 +8,7 @@ import {
   resolveJumpedBall,
 } from '../physics/systems/collisions';
 
-export function updateSimulation({ world, surface, dt }) {
+export function updateSimulation({ world, surface, dt, controls }) {
   // 1. per-ball forces + motion
   for (const ball of world.balls) {
     if (ball.pocketed || ball.jumpedOff) continue;
@@ -21,7 +21,7 @@ export function updateSimulation({ world, surface, dt }) {
     integrateMotion(ball, dt);
     integrateOrientation(ball, dt);
 
-    resolveFloorCollision(ball);
+    resolveFloorCollision(ball, controls.eFloor);
     resolveCushionCollision(ball);
     resolvePocketCapture(ball);
     resolveJumpedBall(ball);

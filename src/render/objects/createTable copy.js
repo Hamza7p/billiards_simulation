@@ -7,7 +7,7 @@ import feltImageUrl from '@/assets/imgs/felt-cloth-light.png';
 export const RAIL_WIDTH    = CLOTH_WIDTH * 0.0674;   // ≈ 0.12 m
 const RAIL_HEIGHT   = CLOTH_WIDTH * 0.0478;   // ≈ 0.085 m
 const BODY_HALF_H   = 0.07;                   // half-thickness of the slate body
-export const POCKET_RADIUS = CLOTH_WIDTH * 0.0534;   // ≈ 0.095 m — real drawn radius, used by physics too
+const POCKET_RADIUS = CLOTH_WIDTH * 0.0534;   // ≈ 0.095 m
 export const POCKET_GAP    = POCKET_RADIUS * 1.6;    // cushion cutback around each pocket
 
 // Full outer dimensions (cloth + two rails each side)
@@ -30,6 +30,30 @@ export const POCKET_POSITIONS = [
   [ CLOTH_LENGTH / 2 + CP,  -CLOTH_WIDTH / 2 - CP],   // back-right  corner
   [ CLOTH_LENGTH / 2 + CP,   CLOTH_WIDTH / 2 + CP],   // front-right corner
 ];
+
+// ─── Cushion (rail) segments — used by collision system ───────────────────
+// Each entry: { axis:'x'|'z', pos, from, to }
+// These are the INNER faces of the cushions (where the ball bounces).
+export const CUSHION_SEGMENTS = _buildCushionSegments();
+
+function _buildCushionSegments() {
+  const halfL = CLOTH_LENGTH / 2;
+  const halfW = CLOTH_WIDTH  / 2;
+  const g     = POCKET_GAP;
+  const cpx   = halfL + CP;           // corner pocket x
+  const cpz   = halfW + CP;           // side pocket z (not used for x-rails)
+
+  return [
+    // Long rails (parallel to X axis) — back (z = -halfW) and front (z = +halfW)
+    { axis:'z', z: -(halfW + RAIL_WIDTH/2), xFrom: -cpx + g, xTo: -g            },
+    { axis:'z', z: -(halfW + RAIL_WIDTH/2), xFrom:  g,       xTo:  cpx - g      },
+    { axis:'z', z:  (halfW + RAIL_WIDTH/2), xFrom: -cpx + g, xTo: -g            },
+    { axis:'z', z:  (halfW + RAIL_WIDTH/2), xFrom:  g,       xTo:  cpx - g      },
+    // Short rails (parallel to Z axis) — left (x = -halfL) and right (x = +halfL)
+    { axis:'x', x: -(halfL + RAIL_WIDTH/2), zFrom: -cpz + g, zTo: cpz - g       },
+    { axis:'x', x:  (halfL + RAIL_WIDTH/2), zFrom: -cpz + g, zTo: cpz - g       },
+  ];
+}
 
 // ─── Texture loader (shared) ──────────────────────────────────────────────
 const loader = new THREE.TextureLoader();

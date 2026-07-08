@@ -15,5 +15,6 @@ export function createControls() {
     ballRadius: BALL.radius,
     eBall: PHYSICS.ballRestitution ?? 0.95,
     eCushion: PHYSICS.railRestitution ?? 0.65,
+    eFloor: PHYSICS.floorRestitution ?? 0.3,
   };
 }

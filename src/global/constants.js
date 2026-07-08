@@ -81,4 +81,5 @@ export const PHYSICS = {
   stopAngular: 0.1,
   railRestitution: 0.65,
   ballRestitution: 0.95,
+  floorRestitution: 0.3,
 };

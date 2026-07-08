@@ -7,8 +7,8 @@ import { updateSimulation } from './updateSimulation';
 import { createControls }  from '../physics/metrics/controls';
 import { calculateMetrics } from '@/physics/metrics/metrics';
 import { START_POINT, PHYSICS } from '@/global/constants';
-import { Quaternion } from 'three';
 import { RACK_ORDER, calcRackPositions } from '@/global/ballsTriangle';
+import { findNearestFreePosition } from './ballPlacement';
 
 
 // ─── Factory ──────────────────────────────────────────────────────────────
@@ -17,6 +17,8 @@ export function createSimulation() {
   const defaultControls = createControls();  // Save defaults for reset
   let simulationTime = 0;
   let isRunning = false;
+  let pendingRespawn = null;
+  let respawnTimer = 0;
 
   // cue ball
   const cueBall = Ball({
@@ -64,18 +66,33 @@ export function createSimulation() {
 
     if (isRunning) simulationTime += dt;
 
-    updateSimulation({ world, surface, dt });
+    if (pendingRespawn) {
+      respawnTimer += dt;
+      if (respawnTimer >= 0.8) {
+        const { ball, position } = pendingRespawn;
+        vec3.set(ball.position, position.x, position.y, 0);
+        ball.pocketed = false;
+        ball.jumpedOff = false;
+        ball.pocketedAt = null;
+        ball.jumpedOffAt = null;
+        pendingRespawn = null;
+        respawnTimer = 0;
+      }
+    }
 
-    // stop check — ALL balls must be at rest
-    const allStopped = world.balls.every(b => {
-      if (b.pocketed || b.jumpedOff) return true;
+    updateSimulation({ world, surface, dt, controls });
+
+    // stop check — only active balls must be at rest
+    const activeBalls = world.balls.filter((b) => !b.pocketed && !b.jumpedOff);
+    const allStopped = activeBalls.length === 0 || activeBalls.every((b) => {
       const speed = vec3.length(b.velocity);
       const spin  = vec3.length(b.angularVelocity);
       return speed < PHYSICS.stopSpeed && spin < PHYSICS.stopAngular;
     });
 
-    if (allStopped)
+    if (allStopped && !pendingRespawn) {
       isRunning = false;
+    }
   });
 
   // ── Actions ───────────────────────────────────────────────────────────
@@ -84,6 +101,13 @@ export function createSimulation() {
     simulationTime = 0;
     isRunning = true;
     applyStrike(cueBall, controls);
+  }
+
+  function requestBallPlacement(ball, targetPoint) {
+    const position = findNearestFreePosition(targetPoint, ball.radius, world.balls, ball);
+    pendingRespawn = { ball, position };
+    respawnTimer = 0;
+    isRunning = false;
   }
 
   function reset() {
@@ -107,6 +131,8 @@ export function createSimulation() {
     // Reset controls to defaults
     Object.assign(controls, defaultControls);
 
+    pendingRespawn = null;
+    respawnTimer = 0;
     simulationTime = 0;
     isRunning = false;
   }
@@ -120,5 +146,6 @@ export function createSimulation() {
     reset,
     getSimulationTime: () => simulationTime,
     getMetrics: () => calculateMetrics({ ball: cueBall, surface, simulationTime }),
+    requestBallPlacement,
   };
 }
