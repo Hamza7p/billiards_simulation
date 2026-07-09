@@ -201,10 +201,10 @@ export default function SimulationPanel({
             الموقع Y: {stats.position.y.toFixed(4)} m
           </div>
           <div className="panel-stat-item">
-            السرعة الخطية |v|: {stats.speed.toFixed(4)} m/s
+            السرعة الخطية v: {stats.speed.toFixed(4)} m/s
           </div>
           <div className="panel-stat-item">
-            السرعة الدورانية |ω|: {stats.spin.toFixed(4)} rad/s
+            السرعة الدورانية ω: {stats.spin.toFixed(4)} rad/s
           </div>
           <div className="panel-stat-item">
             انزلاق نقطة التماس: {stats.slipSpeed.toFixed(4)} m/s
@@ -228,7 +228,7 @@ export default function SimulationPanel({
             التسارع: {stats.acceleration?.toFixed(4) || '0.0000'} m/s²
           </div>
           <div className="panel-stat-item">
-            حالة الحركة: {stats.isRolling ? 'تدحرج نقي' : 'انزلاق'}
+            حالة الحركة: {stats.speed > 0 ? (stats.isRolling ? 'تدحرج نقي' : 'انزلاق'): 'متوقف'}
           </div>
           <div className="panel-stat-item">
             المسافة المقطوعة: {stats.distanceTraveled.toFixed(4)} m
